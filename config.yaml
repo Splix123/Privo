@@ -1,0 +1,15 @@
+#Audio Input
+sample_rate: 16000
+block_size: 80
+channels: 1
+
+#Wakeword Detector
+model_path: "../models/wakeword/alexa_v0.1.onnx"
+threshold: 0.5
+vad_threshold: 0.5
+
+#Speech Recognition
+
+#NLU
+
+#Text to Speech

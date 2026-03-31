@@ -2,7 +2,7 @@ import sounddevice as sd
 import numpy as np
 
 class AudioInput:
-    def __init__(self, sample_rate=16000, block_ms=80, channels=1):
+    def __init__(self, sample_rate: int =16000, block_ms: int = 80, channels: int = 1):
         self.sample_rate = sample_rate
         self.channels = channels
         self.block_size = int(sample_rate * block_ms / 1000)
