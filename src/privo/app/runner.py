@@ -2,9 +2,12 @@ import yaml
 from privo.audio import AudioInput
 from privo.wakeword import WakewordDetector
 
-def main():
+def run() -> None:
+    print("Starte Privo...")
+
+    # Config laden
     try:
-        with open("../config.yaml", "r") as f:
+        with open("config.yaml", "r") as f:
             config = yaml.safe_load(f)
     except FileNotFoundError:
         print("Config-Datei konnte nicht gefunden werden.")
@@ -13,11 +16,14 @@ def main():
         print(f"Fehler beim Parsen der YAML: {e}")
         config = {}
 
+    # Audio Initialisieren
     audio = AudioInput(
         sample_rate=config["sample_rate"],
         block_ms=config["block_size"],
         channels=config["channels"]
     )
+
+    # Wakeword-Detector Initialisieren
     detector = WakewordDetector(
         model_path=config["model_path"],
         threshold=config["threshold"],
@@ -26,7 +32,7 @@ def main():
 
     audio.start()
 
-    print("Listening for wakeword...")
+    print("Höre auf Wakeword...")
 
     try:
         while True:
@@ -41,10 +47,6 @@ def main():
                 # z.B. Aufnahme starten für Speech-to-Text
 
     except KeyboardInterrupt:
-        print("Stopping...")
+        print("Beende Privo...")
     finally:
         audio.stop()
-
-
-if __name__ == "__main__":
-    main()
