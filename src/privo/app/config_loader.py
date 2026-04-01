@@ -18,7 +18,11 @@ class Config(TypedDict, total=False):
     beam_size: int
     silence_threshold: float
     silence_blocks: int
-
+    stt_model_path: str
+    stt_device: str
+    stt_compute_type: str
+    stt_language: str
+    stt_beam_size: int
 
 class ConfigLoader:
     EXPECTED_TYPES: dict[str, type] = {
@@ -36,6 +40,11 @@ class ConfigLoader:
         "beam_size": int,
         "silence_threshold": float,
         "silence_blocks": int,
+        "stt_model_path": str,
+        "stt_device": str,
+        "stt_compute_type": str,
+        "stt_language": str,
+        "stt_beam_size": int,
     }
 
     def __init__(self, config_path: str = "config.yaml"):

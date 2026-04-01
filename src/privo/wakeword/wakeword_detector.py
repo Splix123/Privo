@@ -7,7 +7,7 @@ class WakewordDetector:
         model_file = Path(model_path)
 
         if not model_file.exists():
-            raise FileNotFoundError(f"Wakeword-Modell nicht gefunden: {model_file}")
+            raise FileNotFoundError(f"Wakeword-Modell nicht gefunden: {model_file}" )
 
         self.model = Model(
             wakeword_models=[str(model_file)],

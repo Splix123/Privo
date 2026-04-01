@@ -5,12 +5,14 @@ from privo.app.config_loader import ConfigLoader
 from privo.audio import AudioInput
 from privo.wakeword import WakewordDetector
 from privo.stt import UtteranceRecorder
+from privo.stt import WhisperStt
 
 class State(Enum):
     LISTENING = auto()
     RECORDING = auto()
-    PROCESSING = auto()
-    COOLDOWN = auto()
+    TRANSCRIBING = auto()
+    GENERATING = auto()
+    SPEAKING = auto()
 
 def run() -> None:
     console = Console() 
@@ -56,22 +58,21 @@ def run() -> None:
         }
     )
 
-     # Whisper / STT initialisieren
-    # stt = WhisperStt(
-    #     WhisperSttConfig(
-    #         model_name=config["stt"]["model_name"],
-    #         device=config["stt"].get("device", "cpu"),
-    #         compute_type=config["stt"].get("compute_type", "int8"),
-    #         language=config["stt"].get("language", "de"),
-    #         beam_size=config["stt"].get("beam_size", 5),
-    #     )
-    # )
+    # Whisper / STT initialisieren
+    stt = WhisperStt(
+        **{
+            k: v for k, v in {
+                "model_path": config.get("stt_model_path"),
+                "device": config.get("stt_device"),
+                "compute_type": config.get("stt_compute_type"),
+                "language": config.get("stt_language"),
+                "beam_size": config.get("stt_beam_size"),
+            }.items()
+            if v is not None
+        }
+    )
 
     state = State.LISTENING
-    # TODO: Cooldown abchecken und vllt in config packen
-    cooldown_seconds = config.get("cooldown_seconds", 1.5)
-    cooldown_until = 0.0
-
     utterance_audio = None
 
     audio.start()
@@ -99,24 +100,38 @@ def run() -> None:
 
                     if finished:
                         utterance_audio = recorder.get_audio()
-                        console.print(f"Aufnahme beendet. Samples: {len(utterance_audio)}\n")
-
+                        audio.clear_buffer()
                         recorder.reset()
-                        state = State.PROCESSING
+                        state = State.TRANSCRIBING
 
-                elif state == State.PROCESSING:
+                elif state == State.TRANSCRIBING:
                     status.update("Verarbeite Eingabe...")
-                    audio.clear_buffer()
+                    if utterance_audio is not None and len(utterance_audio) > 0:
+                        text = stt.transcribe(utterance_audio)
+                        console.print(f"\n[bold green]Transkript:[/bold green] {text}")
+                    else:
+                        console.print("\n[yellow]Keine Audioaufnahme zum Transkribieren vorhanden.[/yellow]")
 
-                    cooldown_until = time.monotonic() + cooldown_seconds
-                    state = State.COOLDOWN
+                    utterance_audio = None
+                    state = State.GENERATING
 
-                elif state == State.COOLDOWN:
-                    if time.monotonic() >= cooldown_until:
-                        status.update("Höre wieder auf Wakeword...")
-                        state = State.LISTENING
+                elif state == State.GENERATING:
+                    status.update("Generiere Antwort...")
+                    time.sleep(0.1)  # Platzhalter für tatsächliche Verarbeitung
+                    state = State.SPEAKING
+
+                elif state == State.SPEAKING:
+                    status.update("Gebe Antwort aus...")
+                    time.sleep(0.1)  # Platzhalter für tatsächliche Sprachausgabe
+                    status.update("Höre wieder auf Wakeword...")
+                    state = State.LISTENING
 
         except KeyboardInterrupt:
             console.print("Beende Privo...")
         finally:
             audio.stop()
+
+
+# --- DEL ---
+# Statemachine
+# Rich-text verarbeitung
