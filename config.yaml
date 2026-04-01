@@ -2,6 +2,7 @@
 sample_rate: 16000
 block_size: 80
 channels: 1
+ring_buffer_chunks: 20
 
 #Wakeword Detector
 model_path: "models/wakeword/alexa_v0.1.onnx"
@@ -9,7 +10,14 @@ threshold: 0.5
 vad_threshold: 0.5
 
 #Speech Recognition
+model_name: "models/stt/faster-whisper-small"
+device: "cpu"
+compute_type: "int8"
+language: "de"
+beam_size: 5
+silence_threshold: 400.0
+silence_blocks: 15
 
-#NLU
+#LLM
 
 #Text to Speech

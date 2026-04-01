@@ -1,3 +1,3 @@
-from .wakewordDetector import WakewordDetector
+from .wakeword_detector import WakewordDetector
 
 print("Wakeword-Modul geladen")
