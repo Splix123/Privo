@@ -15,7 +15,8 @@ dependencies = [
     "rich (>=14.3.3,<15.0.0)",
     "faster-whisper (>=1.2.1,<2.0.0)",
     "llama-cpp-python (>=0.3.19,<0.4.0)",
-    "piper-tts (>=1.4.1,<2.0.0)"
+    "piper-tts (>=1.4.1,<2.0.0)",
+    "pathvalidate (>=3.3.1,<4.0.0)"
 ]
 
 [build-system]

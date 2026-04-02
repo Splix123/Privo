@@ -30,10 +30,10 @@ def run() -> None:
     audio = AudioInput(
         **{
             k: v for k, v in {
-                "sample_rate": config.get("sample_rate"),
-                "block_ms": config.get("block_size"),
-                "channels": config.get("channels"),
-                "ring_buffer_chunks": config.get("ring_buffer_chunks"),
+                "sample_rate": config.get("au_sample_rate"),
+                "block_ms": config.get("au_block_size"),
+                "channels": config.get("au_channels"),
+                "ring_buffer_chunks": config.get("au_ring_buffer_chunks"),
             }.items()
             if v is not None
         }
@@ -43,9 +43,9 @@ def run() -> None:
     detector = WakewordDetector(
         **{
             k: v for k, v in {
-                "model_path": config.get("model_path"),
-                "threshold": config.get("threshold"),
-                "vad_threshold": config.get("vad_threshold"),
+                "model_path": config.get("wwd_model_path"),
+                "threshold": config.get("wwd_threshold"),
+                "vad_threshold": config.get("wwd_vad_threshold"),
             }.items()
             if v is not None
         }
@@ -55,8 +55,8 @@ def run() -> None:
     recorder = UtteranceRecorder(
         **{
             k: v for k, v in {
-                "silence_threshold": config.get("silence_threshold"),
-                "silence_blocks": config.get("silence_blocks"),
+                "silence_threshold": config.get("stt_silence_threshold"),
+                "silence_blocks": config.get("stt_silence_blocks"),
             }.items()
             if v is not None
         }
@@ -113,8 +113,9 @@ def run() -> None:
     transcript = ""
     conversation_active = False
     last_interaction_time = 0.0
-    silence_threshold = config.get("silence_threshold", 500.0)
+    silence_threshold = config.get("stt_silence_threshold", 500.0)
     conversation_timeout = config.get("llm_conversation_timeout", 8.0)
+    answer = ""
 
     audio.start()
     with console.status("Höre auf Wakeword...", spinner="arc") as status:
@@ -184,14 +185,18 @@ def run() -> None:
                         user_text=transcript,
                         system_prompt=config.get("llm_system_prompt", "Du bist ein hilfreicher Sprachassistent"),
                     )
-
-                    console.print("\n[bold green]Antwort:[/bold green]", answer)
                     last_interaction_time = time.time()
                     state = State.SPEAKING
 
                 elif state == State.SPEAKING:
-                    status.update("Gebe Antwort aus...")
-                    time.sleep(0.1)  # Platzhalter für tatsächliche Sprachausgabe
+                    status.update("[bold green]Antwort:[/bold green] " + answer)
+                    try:
+                        audio.clear_buffer()
+                        tts.stream_speak(answer)
+                    except Exception as e:
+                        console.print(f"\n[bold red]TTS-Fehler:[/bold red] {e}")
+
+                    last_interaction_time = time.time()
 
                     if conversation_active:
                         status.update("Höre weiter zu...")

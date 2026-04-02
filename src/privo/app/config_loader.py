@@ -4,20 +4,15 @@ from rich import print
 
 
 class Config(TypedDict, total=False):
-    sample_rate: int
-    block_size: int
-    channels: int
-    ring_buffer_chunks: int
-    model_path: str
-    threshold: float
-    vad_threshold: float
-    model_name: str
-    device: str
-    compute_type: str
-    language: str
-    beam_size: int
-    silence_threshold: float
-    silence_blocks: int
+    au_sample_rate: int
+    au_block_size: int
+    au_channels: int
+    au_ring_buffer_chunks: int
+    wwd_model_path: str
+    wwd_threshold: float
+    wwd_vad_threshold: float
+    stt_silence_threshold: float
+    stt_silence_blocks: int
     stt_model_path: str
     stt_device: str
     stt_compute_type: str
@@ -31,24 +26,26 @@ class Config(TypedDict, total=False):
     llm_temperature: float
     llm_history_limit: int
     llm_conversation_timeout: float
+    tts_model_path: str
+    tts_config_path: str
+    tts_speaker: int
+    tts_length_scale: float
+    tts_noise_scale: float
+    tts_noise_w_scale: float
+    tts_sentence_silence: float
 
 
 class ConfigLoader:
     EXPECTED_TYPES: dict[str, type] = {
-        "sample_rate": int,
-        "block_size": int,
-        "channels": int,
-        "ring_buffer_chunks": int,
-        "model_path": str,
-        "threshold": float,
-        "vad_threshold": float,
-        "model_name": str,
-        "device": str,
-        "compute_type": str,
-        "language": str,
-        "beam_size": int,
-        "silence_threshold": float,
-        "silence_blocks": int,
+        "au_sample_rate": int,
+        "au_block_size": int,
+        "au_channels": int,
+        "au_ring_buffer_chunks": int,
+        "wwd_model_path": str,
+        "wwd_threshold": float,
+        "wwd_vad_threshold": float,
+        "stt_silence_threshold": float,
+        "stt_silence_blocks": int,
         "stt_model_path": str,
         "stt_device": str,
         "stt_compute_type": str,
@@ -62,6 +59,13 @@ class ConfigLoader:
         "llm_temperature": float,
         "llm_history_limit": int,
         "llm_conversation_timeout": float,
+        "tts_model_path": str,
+        "tts_config_path": str,
+        "tts_speaker": int,
+        "tts_length_scale": float,
+        "tts_noise_scale": float,
+        "tts_noise_w_scale": float,
+        "tts_sentence_silence": float,
     }
 
     def __init__(self, config_path: str = "config.yaml"):

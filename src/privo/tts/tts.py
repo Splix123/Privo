@@ -7,13 +7,13 @@ from pathlib import Path
 class PiperTts:
     def __init__(
         self,
-        model_path: str,
-        config_path: str | None = None,
-        speaker: int | None = None,
-        length_scale: float | None = None,
-        noise_scale: float | None = None,
-        noise_w_scale: float | None = None,
-        sentence_silence: float | None = None,
+        model_path: str = "models/tts/de_DE-thorsten-high.onnx",
+        config_path: str = "models/tts/de_DE-thorsten-high.onnx.json",
+        speaker: int = 0,
+        length_scale: float = 1.0,
+        noise_scale: float = 0.667,
+        noise_w_scale: float = 0.8,
+        sentence_silence: float = 0.2,
     ) -> None:
         self.model_path = Path(model_path)
         self.config_path = Path(config_path) if config_path else Path(f"{model_path}.json")
@@ -42,11 +42,12 @@ class PiperTts:
 
     def _build_cmd(self) -> list[str]:
         cmd = [
-            "piper-tts",
+            "python",
+            "-m",
+            "piper",
             "--model",
             str(self.model_path),
             "--output-raw",
-            "--quiet",
         ]
 
         if self.config_path is not None:
