@@ -23,6 +23,15 @@ class Config(TypedDict, total=False):
     stt_compute_type: str
     stt_language: str
     stt_beam_size: int
+    llm_model_path: str
+    llm_n_ctx: int
+    llm_n_gpu_layers: int
+    llm_system_prompt: str
+    llm_max_tokens: int
+    llm_temperature: float
+    llm_history_limit: int
+    llm_conversation_timeout: float
+
 
 class ConfigLoader:
     EXPECTED_TYPES: dict[str, type] = {
@@ -45,6 +54,14 @@ class ConfigLoader:
         "stt_compute_type": str,
         "stt_language": str,
         "stt_beam_size": int,
+        "llm_model_path": str,
+        "llm_n_ctx": int,
+        "llm_n_gpu_layers": int,
+        "llm_system_prompt": str,
+        "llm_max_tokens": int,
+        "llm_temperature": float,
+        "llm_history_limit": int,
+        "llm_conversation_timeout": float,
     }
 
     def __init__(self, config_path: str = "config.yaml"):

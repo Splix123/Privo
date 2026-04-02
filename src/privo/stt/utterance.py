@@ -51,3 +51,8 @@ class UtteranceRecorder:
     def _audio_level(chunk: np.ndarray) -> float:
         chunk = chunk.astype(np.float32)
         return float(np.mean(np.abs(chunk)))
+    
+
+# --- DEL ---
+# Um Audio chunks zu einem kompletten satz zusammenzufügen
+# Stille am anfang und ende entfernen

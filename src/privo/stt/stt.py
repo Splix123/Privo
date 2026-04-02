@@ -35,6 +35,7 @@ class WhisperStt:
         text = "".join(segment.text for segment in segments).strip()
         return text
     
+    
 # --- DEL ---
 # in transcribe int16 -> float32 normalisieren
 # nvidia Cuda bzw cudNN für Beelink pc?

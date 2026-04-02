@@ -19,5 +19,20 @@ silence_threshold: 400.0
 silence_blocks: 15
 
 #LLM
+llm_model_path: "models/llm/qwen2.5-3b-instruct-q4_k_m.gguf"
+llm_n_ctx: 4096
+llm_n_gpu_layers: -1
+llm_system_prompt: "Du bist eine hilfreiche Sprachassistentin Alexa. Antworte immer auf Deutsch. Verwende ausschließlich deutsche Sprache in normaler lateinischer Schrift."
+llm_max_tokens: 256
+llm_temperature: 0.5
+llm_history_limit: 6
+llm_conversation_timeout: 8.0
 
 #Text to Speech
+tts_model_path: "models/tts/de_DE-thorsten-high.onnx"
+tts_config_path: "models/tts/de_DE-thorsten-high.onnx.json"
+tts_speaker: 0
+tts_length_scale: 1.0
+tts_noise_scale: 0.667
+tts_noise_w_scale: 0.8
+tts_sentence_silence: 0.2

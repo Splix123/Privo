@@ -1,4 +1,5 @@
 import time
+import numpy as np
 from enum import Enum, auto
 from rich.console import Console
 from privo.app.config_loader import ConfigLoader
@@ -6,6 +7,8 @@ from privo.audio import AudioInput
 from privo.wakeword import WakewordDetector
 from privo.stt import UtteranceRecorder
 from privo.stt import WhisperStt
+from privo.llm import LocalLLM
+from privo.tts import PiperTts
 
 class State(Enum):
     LISTENING = auto()
@@ -13,6 +16,7 @@ class State(Enum):
     TRANSCRIBING = auto()
     GENERATING = auto()
     SPEAKING = auto()
+    FOLLOWUP = auto()
 
 def run() -> None:
     console = Console() 
@@ -35,7 +39,7 @@ def run() -> None:
         }
     )
 
-    # Wakeword-Detector Initialisieren
+    # Wakeword-Detector Initialisieren (OpenWakeWord)
     detector = WakewordDetector(
         **{
             k: v for k, v in {
@@ -58,7 +62,7 @@ def run() -> None:
         }
     )
 
-    # Whisper / STT initialisieren
+    # STT initialisieren (Whisper)
     stt = WhisperStt(
         **{
             k: v for k, v in {
@@ -72,8 +76,45 @@ def run() -> None:
         }
     )
 
+    # LLM backend initialisieren (llama.cpp)
+    llm = LocalLLM(
+        **{
+            k: v for k, v in {
+                "model_path": config.get("llm_model_path"),
+                "n_ctx": config.get("llm_n_ctx"),
+                "n_gpu_layers": config.get("llm_n_gpu_layers"),
+                "verbose": config.get("llm_verbose"),
+                "max_tokens": config.get("llm_max_tokens"),
+                "temperature": config.get("llm_temperature"),
+                "history_limit": config.get("llm_history_limit"),
+            }.items()
+            if v is not None
+        }
+    )
+
+    # TTS backend initialisieren (Piper)
+    tts = PiperTts(
+        **{
+            k: v for k, v in {
+                "model_path": config.get("tts_model_path"),
+                "config_path": config.get("tts_config_path"),
+                "speaker": config.get("tts_speaker"),
+                "length_scale": config.get("tts_length_scale"),
+                "noise_scale": config.get("tts_noise_scale"),
+                "noise_w_scale": config.get("tts_noise_w_scale"),
+                "sentence_silence": config.get("tts_sentence_silence"),
+            }.items()
+            if v is not None
+        }
+    )
+
     state = State.LISTENING
     utterance_audio = None
+    transcript = ""
+    conversation_active = False
+    last_interaction_time = 0.0
+    silence_threshold = config.get("silence_threshold", 500.0)
+    conversation_timeout = config.get("llm_conversation_timeout", 8.0)
 
     audio.start()
     with console.status("Höre auf Wakeword...", spinner="arc") as status:
@@ -85,13 +126,14 @@ def run() -> None:
                     detected, wakeword, score = detector.process(chunk)
 
                     if detected:
-                        console.print(f"Wakeword erkannt: {wakeword} ({score:.2f})")
+                        llm.reset_history()
+                        conversation_active = True
+                        last_interaction_time = time.time()
 
                         pre_roll_chunks = audio.get_buffered_audio()
                         recorder.start(pre_roll_chunks=pre_roll_chunks)
 
                         detector.reset()
-
                         state = State.RECORDING
 
                 elif state == State.RECORDING:
@@ -107,24 +149,84 @@ def run() -> None:
                 elif state == State.TRANSCRIBING:
                     status.update("Verarbeite Eingabe...")
                     if utterance_audio is not None and len(utterance_audio) > 0:
-                        text = stt.transcribe(utterance_audio)
-                        console.print(f"\n[bold green]Transkript:[/bold green] {text}")
-                    else:
-                        console.print("\n[yellow]Keine Audioaufnahme zum Transkribieren vorhanden.[/yellow]")
+                        transcript = stt.transcribe(utterance_audio)
+                        cleaned = transcript.strip()
+                        lower = cleaned.lower()
 
+                        for wakeword in ["hey alexa", "alexa", "alex"]:
+                            if lower.startswith(wakeword):
+                                cleaned = cleaned[len(wakeword):].lstrip(" ,.!?:;")
+                                break
+
+                        if not cleaned:
+                            console.print("\n[bold red]Nur Wakeword erkannt, keine eigentliche Eingabe.[/bold red]")
+                            utterance_audio = None
+                            state = State.LISTENING
+                            continue
+                        transcript = cleaned
+                    else:
+                        console.print("\n[bold red]Es konnte kein Audio transkribiert werden.[/bold red]")
+                        state = State.LISTENING
+                        continue
                     utterance_audio = None
+                    last_interaction_time = time.time()
                     state = State.GENERATING
 
                 elif state == State.GENERATING:
                     status.update("Generiere Antwort...")
-                    time.sleep(0.1)  # Platzhalter für tatsächliche Verarbeitung
+
+                    if not transcript:
+                        console.print("\n[bold red]Es wurde nur Stille aufgenommen – keine Antwort generiert.[/bold red]")
+                        state = State.FOLLOWUP if conversation_active else State.LISTENING
+                        continue
+
+                    answer = llm.generate(
+                        user_text=transcript,
+                        system_prompt=config.get("llm_system_prompt", "Du bist ein hilfreicher Sprachassistent"),
+                    )
+
+                    console.print("\n[bold green]Antwort:[/bold green]", answer)
+                    last_interaction_time = time.time()
                     state = State.SPEAKING
 
                 elif state == State.SPEAKING:
                     status.update("Gebe Antwort aus...")
                     time.sleep(0.1)  # Platzhalter für tatsächliche Sprachausgabe
-                    status.update("Höre wieder auf Wakeword...")
-                    state = State.LISTENING
+
+                    if conversation_active:
+                        status.update("Höre weiter zu...")
+                        state = State.FOLLOWUP
+                    else:
+                        status.update("Höre auf Wakeword...")
+                        state = State.LISTENING
+
+                elif state == State.FOLLOWUP:
+                    if time.time() - last_interaction_time > conversation_timeout:
+                        conversation_active = False
+                        llm.reset_history()
+                        recorder.reset()
+                        audio.clear_buffer()
+                        detector.reset()
+                        status.update("Höre auf Wakeword...")
+                        state = State.LISTENING
+                        continue
+
+                    if not recorder.recording:
+                        rms = np.sqrt(np.mean(np.square(chunk.astype(np.float32))))
+
+                        if rms > silence_threshold:
+                            pre_roll_chunks = audio.get_buffered_audio()
+                            recorder.start(pre_roll_chunks=pre_roll_chunks)
+
+                    else:
+                        finished = recorder.process(chunk)
+
+                        if finished:
+                            utterance_audio = recorder.get_audio()
+                            audio.clear_buffer()
+                            recorder.reset()
+                            last_interaction_time = time.time()
+                            state = State.TRANSCRIBING
 
         except KeyboardInterrupt:
             console.print("Beende Privo...")
@@ -135,3 +237,4 @@ def run() -> None:
 # --- DEL ---
 # Statemachine
 # Rich-text verarbeitung
+# TODO:Silero-VAD überall benutzen!!! 
