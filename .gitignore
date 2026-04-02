@@ -11,5 +11,6 @@ __pycache__/
 # VS Code
 .vscode/
 
-# Model-ordner
+# Ordner
 models/
+debug/

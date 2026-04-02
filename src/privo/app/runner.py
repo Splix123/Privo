@@ -3,6 +3,7 @@ import numpy as np
 from enum import Enum, auto
 from rich.console import Console
 from privo.app.config_loader import ConfigLoader
+from privo.app.debugger import Debugger
 from privo.audio import AudioInput
 from privo.wakeword import WakewordDetector
 from privo.stt import UtteranceRecorder
@@ -18,13 +19,17 @@ class State(Enum):
     SPEAKING = auto()
     FOLLOWUP = auto()
 
-def run() -> None:
+def run(debug: bool = False) -> None:
     console = Console() 
     console.print("\n\nStarte Privo...\n")
+    
 
     # Config laden
     config_loader = ConfigLoader()
     config = config_loader.load()
+
+    # Debugger initialisieren (optional)
+    debugger = Debugger(debug_dir=config.get("debug_dir", "debug"), enabled=debug)
 
     # Audio Initialisieren
     audio = AudioInput(
@@ -38,6 +43,7 @@ def run() -> None:
             if v is not None
         }
     )
+    console.print("Audio-Modul geladen")
 
     # Wakeword-Detector Initialisieren (OpenWakeWord)
     detector = WakewordDetector(
@@ -50,6 +56,7 @@ def run() -> None:
             if v is not None
         }
     )
+    console.print("Wakeword-Detector geladen")
 
     # Utterance-Recorder Initialisieren
     recorder = UtteranceRecorder(
@@ -61,6 +68,7 @@ def run() -> None:
             if v is not None
         }
     )
+    console.print("Utterance-Recorder-Modul geladen")
 
     # STT initialisieren (Whisper)
     stt = WhisperStt(
@@ -75,6 +83,7 @@ def run() -> None:
             if v is not None
         }
     )
+    console.print("STT-Modul geladen")
 
     # LLM backend initialisieren (llama.cpp)
     llm = LocalLLM(
@@ -91,6 +100,7 @@ def run() -> None:
             if v is not None
         }
     )
+    console.print("LLM-Modul geladen")
 
     # TTS backend initialisieren (Piper)
     tts = PiperTts(
@@ -107,6 +117,7 @@ def run() -> None:
             if v is not None
         }
     )
+    console.print("TTS-Modul geladen\n")
 
     state = State.LISTENING
     utterance_audio = None
@@ -132,6 +143,7 @@ def run() -> None:
                         last_interaction_time = time.time()
 
                         pre_roll_chunks = audio.get_buffered_audio()
+                        debugger.save_ring_buffer(pre_roll_chunks, "Wakeword")
                         recorder.start(pre_roll_chunks=pre_roll_chunks)
 
                         detector.reset()
@@ -143,6 +155,7 @@ def run() -> None:
 
                     if finished:
                         utterance_audio = recorder.get_audio()
+                        debugger.save_utterance(utterance_audio, "Eingabe")
                         audio.clear_buffer()
                         recorder.reset()
                         state = State.TRANSCRIBING
@@ -151,6 +164,7 @@ def run() -> None:
                     status.update("Verarbeite Eingabe...")
                     if utterance_audio is not None and len(utterance_audio) > 0:
                         transcript = stt.transcribe(utterance_audio)
+                        debugger.save_text(transcript, "Transkript")
                         cleaned = transcript.strip()
                         lower = cleaned.lower()
 
@@ -165,6 +179,7 @@ def run() -> None:
                             state = State.LISTENING
                             continue
                         transcript = cleaned
+                        debugger.save_text(transcript + "\n", "Bereinigtes Transkript")
                     else:
                         console.print("\n[bold red]Es konnte kein Audio transkribiert werden.[/bold red]")
                         state = State.LISTENING
@@ -185,6 +200,7 @@ def run() -> None:
                         user_text=transcript,
                         system_prompt=config.get("llm_system_prompt", "Du bist ein hilfreicher Sprachassistent"),
                     )
+                    debugger.save_text(answer + "\n", "LLM-Antwort")
                     last_interaction_time = time.time()
                     state = State.SPEAKING
 
@@ -217,6 +233,7 @@ def run() -> None:
                         continue
 
                     if not recorder.recording:
+                        # TODO:Silero-VAD überall benutzen!!! 
                         rms = np.sqrt(np.mean(np.square(chunk.astype(np.float32))))
 
                         if rms > silence_threshold:
@@ -228,6 +245,7 @@ def run() -> None:
 
                         if finished:
                             utterance_audio = recorder.get_audio()
+                            debugger.save_utterance(utterance_audio, "Eingabe")
                             audio.clear_buffer()
                             recorder.reset()
                             last_interaction_time = time.time()
@@ -243,3 +261,4 @@ def run() -> None:
 # Statemachine
 # Rich-text verarbeitung
 # TODO:Silero-VAD überall benutzen!!! 
+# TODO: LLM stream einbauen!!!

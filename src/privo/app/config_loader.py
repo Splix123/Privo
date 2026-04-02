@@ -33,6 +33,7 @@ class Config(TypedDict, total=False):
     tts_noise_scale: float
     tts_noise_w_scale: float
     tts_sentence_silence: float
+    debug_dir: str
 
 
 class ConfigLoader:
@@ -66,6 +67,7 @@ class ConfigLoader:
         "tts_noise_scale": float,
         "tts_noise_w_scale": float,
         "tts_sentence_silence": float,
+        "debug_dir": str,
     }
 
     def __init__(self, config_path: str = "config.yaml"):

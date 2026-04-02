@@ -6,33 +6,40 @@ au_ring_buffer_chunks: 20
 
 #Wakeword Detector
 wwd_model_path: "models/wakeword/alexa_v0.1.onnx"
+
 wwd_threshold: 0.5
 wwd_vad_threshold: 0.5
 
 #Speech Recognition
 stt_model_path: "models/stt/faster-whisper-small"
+stt_language: en
 stt_device: cpu
+
 stt_compute_type: int8
-stt_language: de
 stt_beam_size: 5
 stt_silence_threshold: 400.0
 stt_silence_blocks: 15
 
 #LLM
 llm_model_path: "models/llm/qwen2.5-3b-instruct-q4_k_m.gguf"
+llm_system_prompt: "You are a helpful voice assistant Alexa. Always respond in English. Use only the English language in standard Latin script. Answer brief and concise."
+
 llm_n_ctx: 4096
 llm_n_gpu_layers: -1
-llm_system_prompt: "Du bist eine hilfreiche Sprachassistentin Alexa. Antworte immer auf Deutsch. Verwende ausschließlich deutsche Sprache in normaler lateinischer Schrift."
 llm_max_tokens: 256
 llm_temperature: 0.5
 llm_history_limit: 6
 llm_conversation_timeout: 8.0
 
 #Text to Speech
-tts_model_path: "models/tts/de_DE-thorsten-high.onnx"
-tts_config_path: "models/tts/de_DE-thorsten-high.onnx.json"
+tts_model_path: "models/tts/en_US-hfc_female-medium.onnx"
+tts_config_path: "models/tts/en_US-hfc_female-medium.onnx.json"
+
 tts_speaker: 0
 tts_length_scale: 1.0
 tts_noise_scale: 0.667
 tts_noise_w_scale: 0.8
 tts_sentence_silence: 0.2
+
+# Debugging
+debug_dir: "debug"
