@@ -2,6 +2,7 @@ import time
 import numpy as np
 from enum import Enum, auto
 from rich.console import Console
+from .chat import Chat
 from privo.app.module_builder import ModuleBuilder
 
 
@@ -16,6 +17,7 @@ class State(Enum):
 
 def run(debug: bool = False) -> None:
     console = Console()
+    chat = Chat(console=console)
     console.print("\n\nStarte Privo...\n")
 
     builder = ModuleBuilder(debug=debug)
@@ -74,6 +76,11 @@ def run(debug: bool = False) -> None:
                     status.update("Verarbeite Eingabe...")
                     if utterance_audio is not None and len(utterance_audio) > 0:
                         transcript = stt.transcribe_stream(utterance_audio)
+                        chat.print_chat(
+                            transcript,
+                            name="Du",
+                            align="left",
+                        )
                         debugger.save_text(transcript, "Transkript")
                         cleaned = transcript.strip()
                         lower = cleaned.lower()
@@ -126,7 +133,12 @@ def run(debug: bool = False) -> None:
                     state = State.SPEAKING
 
                 elif state == State.SPEAKING:
-                    status.update("[bold green]Antwort:[/bold green] " + answer)
+                    chat.print_chat(
+                        answer,
+                        name="Privo",
+                        align="right",
+                    )
+                    status.update("Sprechen...")
                     try:
                         audio.clear_buffer()
                         tts.stream_speak(answer)

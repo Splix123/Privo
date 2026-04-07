@@ -1,11 +1,13 @@
 import time
 from pathlib import Path
 from rich.console import Console
+from .chat import Chat
 from privo.app.module_builder import ModuleBuilder
 
 
 def benchmark(debug: bool = True) -> None:
     console = Console()
+    chat = Chat(console=console)
     console.print("\n\nStarte Privo Benchmark...\n")
 
     builder = ModuleBuilder(debug=debug)
@@ -41,7 +43,9 @@ def benchmark(debug: bool = True) -> None:
     with console.status("Bearbeite Samples...", spinner="arc") as status:
         try:
             for sample in sample_files:
-                console.print(f"\n[bold]Sample:[/bold] {sample.name}")
+                console.print(
+                    f"\n\n[bold]Sample:[/bold] {sample.name}", justify="center"
+                )
                 debugger.save_text(f"Verarbeite Sample: {sample.name}", "Sample")
 
                 status.update(f"Transkribiere {sample.name}...")
@@ -58,6 +62,12 @@ def benchmark(debug: bool = True) -> None:
                     )
                     time.sleep(1)
                     continue
+
+                chat.print_chat(
+                    transcript,
+                    name=f"{sample.name}",
+                    align="left",
+                )
 
                 debugger.save_text(
                     transcript,
@@ -102,11 +112,15 @@ def benchmark(debug: bool = True) -> None:
                     )
                     time.sleep(1)
                     continue
-
+                chat.print_chat(
+                    answer,
+                    name="Privo",
+                    align="right",
+                )
                 debugger.save_text(
                     answer, "Antwort | in " + llm_time.__format__(".2f") + " Sekunden"
                 )
-                status.update("[bold green]Antwort:[/bold green] " + answer)
+                status.update("Sprechen...")
                 try:
                     tts_start = time.perf_counter()
                     tts.stream_speak(answer)
