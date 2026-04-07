@@ -11,6 +11,7 @@ class Config(TypedDict, total=False):
     wwd_model_path: str
     wwd_threshold: float
     wwd_vad_threshold: float
+    wwd_to_strip: list[str]
     stt_silence_threshold: float
     stt_silence_blocks: int
     stt_model_path: str
@@ -34,6 +35,7 @@ class Config(TypedDict, total=False):
     tts_noise_w_scale: float
     tts_sentence_silence: float
     debug_dir: str
+    benchmark_samples_dir: str
 
 
 class ConfigLoader:
@@ -45,6 +47,7 @@ class ConfigLoader:
         "wwd_model_path": str,
         "wwd_threshold": float,
         "wwd_vad_threshold": float,
+        "wwd_to_strip": list[str],
         "stt_silence_threshold": float,
         "stt_silence_blocks": int,
         "stt_model_path": str,
@@ -68,6 +71,7 @@ class ConfigLoader:
         "tts_noise_w_scale": float,
         "tts_sentence_silence": float,
         "debug_dir": str,
+        "benchmark_samples_dir": str
     }
 
     def __init__(self, config_path: str = "config.yaml"):

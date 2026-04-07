@@ -10,6 +10,8 @@ wwd_model_path: "models/wakeword/alexa_v0.1.onnx"
 wwd_threshold: 0.5
 wwd_vad_threshold: 0.5
 
+wwd_to_strip: ["alexa", "alex", "hey alexa", "ok alexa"]
+
 #Speech Recognition
 stt_model_path: "models/stt/faster-whisper-small"
 stt_language: en
@@ -43,3 +45,6 @@ tts_sentence_silence: 0.2
 
 # Debugging
 debug_dir: "debug"
+
+# Benchmarking
+benchmark_samples_dir: "tests/samples"

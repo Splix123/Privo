@@ -2,14 +2,7 @@ import time
 import numpy as np
 from enum import Enum, auto
 from rich.console import Console
-from privo.app.config_loader import ConfigLoader
-from privo.app.debugger import Debugger
-from privo.audio import AudioInput
-from privo.wakeword import WakewordDetector
-from privo.stt import UtteranceRecorder
-from privo.stt import WhisperStt
-from privo.llm import LocalLLM
-from privo.tts import PiperTts
+from privo.app.module_builder import ModuleBuilder
 
 class State(Enum):
     LISTENING = auto()
@@ -22,110 +15,19 @@ class State(Enum):
 def run(debug: bool = False) -> None:
     console = Console() 
     console.print("\n\nStarte Privo...\n")
-    
 
-    # Config laden
-    config_loader = ConfigLoader()
-    config = config_loader.load()
-
-    # Debugger initialisieren (optional)
-    debugger = Debugger(debug_dir=config.get("debug_dir", "debug"), enabled=debug)
-
-    # Audio Initialisieren
-    audio = AudioInput(
-        **{
-            k: v for k, v in {
-                "sample_rate": config.get("au_sample_rate"),
-                "block_ms": config.get("au_block_size"),
-                "channels": config.get("au_channels"),
-                "ring_buffer_chunks": config.get("au_ring_buffer_chunks"),
-            }.items()
-            if v is not None
-        }
-    )
-    console.print("Audio-Modul geladen")
-
-    # Wakeword-Detector Initialisieren (OpenWakeWord)
-    detector = WakewordDetector(
-        **{
-            k: v for k, v in {
-                "model_path": config.get("wwd_model_path"),
-                "threshold": config.get("wwd_threshold"),
-                "vad_threshold": config.get("wwd_vad_threshold"),
-            }.items()
-            if v is not None
-        }
-    )
-    console.print("Wakeword-Detector geladen")
-
-    # Utterance-Recorder Initialisieren
-    recorder = UtteranceRecorder(
-        **{
-            k: v for k, v in {
-                "silence_threshold": config.get("stt_silence_threshold"),
-                "silence_blocks": config.get("stt_silence_blocks"),
-            }.items()
-            if v is not None
-        }
-    )
-    console.print("Utterance-Recorder-Modul geladen")
-
-    # STT initialisieren (Whisper)
-    stt = WhisperStt(
-        **{
-            k: v for k, v in {
-                "model_path": config.get("stt_model_path"),
-                "device": config.get("stt_device"),
-                "compute_type": config.get("stt_compute_type"),
-                "language": config.get("stt_language"),
-                "beam_size": config.get("stt_beam_size"),
-            }.items()
-            if v is not None
-        }
-    )
-    console.print("STT-Modul geladen")
-
-    # LLM backend initialisieren (llama.cpp)
-    llm = LocalLLM(
-        **{
-            k: v for k, v in {
-                "model_path": config.get("llm_model_path"),
-                "n_ctx": config.get("llm_n_ctx"),
-                "n_gpu_layers": config.get("llm_n_gpu_layers"),
-                "verbose": config.get("llm_verbose"),
-                "max_tokens": config.get("llm_max_tokens"),
-                "temperature": config.get("llm_temperature"),
-                "history_limit": config.get("llm_history_limit"),
-            }.items()
-            if v is not None
-        }
-    )
-    console.print("LLM-Modul geladen")
-
-    # TTS backend initialisieren (Piper)
-    tts = PiperTts(
-        **{
-            k: v for k, v in {
-                "model_path": config.get("tts_model_path"),
-                "config_path": config.get("tts_config_path"),
-                "speaker": config.get("tts_speaker"),
-                "length_scale": config.get("tts_length_scale"),
-                "noise_scale": config.get("tts_noise_scale"),
-                "noise_w_scale": config.get("tts_noise_w_scale"),
-                "sentence_silence": config.get("tts_sentence_silence"),
-            }.items()
-            if v is not None
-        }
-    )
-    console.print("TTS-Modul geladen\n")
+    builder = ModuleBuilder(debug=debug)
+    config, debugger, audio, detector, recorder, stt, llm, tts = builder.build_all()
 
     state = State.LISTENING
     utterance_audio = None
+    wwd_to_strip = config.get("wwd_to_strip", ["hey alexa", "alexa", "alex"])
     transcript = ""
     conversation_active = False
     last_interaction_time = 0.0
     silence_threshold = config.get("stt_silence_threshold", 500.0)
     conversation_timeout = config.get("llm_conversation_timeout", 8.0)
+    system_prompt = config.get("llm_system_prompt", "Du bist ein hilfreicher Sprachassistent")
     answer = ""
 
     audio.start()
@@ -138,7 +40,8 @@ def run(debug: bool = False) -> None:
                     detected, wakeword, score = detector.process(chunk)
 
                     if detected:
-                        llm.reset_history()
+                        if not conversation_active:
+                            llm.reset_history() 
                         conversation_active = True
                         last_interaction_time = time.time()
 
@@ -168,7 +71,7 @@ def run(debug: bool = False) -> None:
                         cleaned = transcript.strip()
                         lower = cleaned.lower()
 
-                        for wakeword in ["hey alexa", "alexa", "alex"]:
+                        for wakeword in wwd_to_strip:
                             if lower.startswith(wakeword):
                                 cleaned = cleaned[len(wakeword):].lstrip(" ,.!?:;")
                                 break
@@ -176,7 +79,8 @@ def run(debug: bool = False) -> None:
                         if not cleaned:
                             console.print("\n[bold red]Nur Wakeword erkannt, keine eigentliche Eingabe.[/bold red]")
                             utterance_audio = None
-                            state = State.LISTENING
+                            last_interaction_time = time.time()
+                            state = State.FOLLOWUP
                             continue
                         transcript = cleaned
                         debugger.save_text(transcript + "\n", "Bereinigtes Transkript")
@@ -198,7 +102,7 @@ def run(debug: bool = False) -> None:
 
                     answer = llm.generate(
                         user_text=transcript,
-                        system_prompt=config.get("llm_system_prompt", "Du bist ein hilfreicher Sprachassistent"),
+                        system_prompt=system_prompt,
                     )
                     debugger.save_text(answer + "\n", "LLM-Antwort")
                     last_interaction_time = time.time()
@@ -209,6 +113,7 @@ def run(debug: bool = False) -> None:
                     try:
                         audio.clear_buffer()
                         tts.stream_speak(answer)
+                        audio.clear_buffer()
                     except Exception as e:
                         console.print(f"\n[bold red]TTS-Fehler:[/bold red] {e}")
 
