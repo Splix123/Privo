@@ -14,3 +14,4 @@ __pycache__/
 # Ordner
 models/
 debug/
+*Notes.txt
