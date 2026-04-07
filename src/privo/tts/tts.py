@@ -16,7 +16,9 @@ class PiperTts:
         sentence_silence: float = 0.2,
     ) -> None:
         self.model_path = Path(model_path)
-        self.config_path = Path(config_path) if config_path else Path(f"{model_path}.json")
+        self.config_path = (
+            Path(config_path) if config_path else Path(f"{model_path}.json")
+        )
         self.speaker = speaker
         self.length_scale = length_scale
         self.noise_scale = noise_scale
@@ -37,7 +39,9 @@ class PiperTts:
 
         sample_rate = data.get("audio", {}).get("sample_rate")
         if sample_rate is None:
-            raise ValueError("sample_rate konnte nicht aus der Piper-Config gelesen werden.")
+            raise ValueError(
+                "sample_rate konnte nicht aus der Piper-Config gelesen werden."
+            )
         return int(sample_rate)
 
     def _build_cmd(self) -> list[str]:
@@ -107,8 +111,12 @@ class PiperTts:
             if return_code != 0:
                 error_output = ""
                 if process.stderr is not None:
-                    error_output = process.stderr.read().decode("utf-8", errors="ignore")
-                raise RuntimeError(f"Piper-tts beendet mit Code {return_code}: {error_output}")
+                    error_output = process.stderr.read().decode(
+                        "utf-8", errors="ignore"
+                    )
+                raise RuntimeError(
+                    f"Piper-tts beendet mit Code {return_code}: {error_output}"
+                )
 
         finally:
             if process.poll() is None:
@@ -116,4 +124,5 @@ class PiperTts:
 
     def stop(self) -> None:
         import sounddevice as sd
+
         sd.stop()

@@ -23,7 +23,7 @@ class WhisperStt:
     def transcribe_stream(self, audio: np.ndarray) -> str:
         if audio is None or len(audio) == 0:
             return ""
-        
+
         if audio.dtype != np.float32:
             audio = audio.astype(np.float32) / 32768.0
 
@@ -35,7 +35,7 @@ class WhisperStt:
 
         text = "".join(segment.text for segment in segments).strip()
         return text
-    
+
     def transcribe_sample(self, audio_path: str | Path) -> str:
         audio_path = Path(audio_path)
 
@@ -50,8 +50,8 @@ class WhisperStt:
 
         text = "".join(segment.text for segment in segments).strip()
         return text
-    
-    
+
+
 # --- DEL ---
 # in transcribe int16 -> float32 normalisieren
 # nvidia Cuda bzw cudNN für Beelink pc?

@@ -2,8 +2,15 @@ import sounddevice as sd
 import numpy as np
 from collections import deque
 
+
 class AudioInput:
-    def __init__(self, sample_rate: int = 16000, block_ms: int = 80, channels: int = 1, ring_buffer_chunks: int = 20):
+    def __init__(
+        self,
+        sample_rate: int = 16000,
+        block_ms: int = 80,
+        channels: int = 1,
+        ring_buffer_chunks: int = 20,
+    ):
         self.sample_rate = sample_rate
         self.channels = channels
         self.block_size = int(sample_rate * block_ms / 1000)
@@ -22,7 +29,9 @@ class AudioInput:
 
     def read_chunk(self):
         if self.stream is None:
-            raise RuntimeError("Der Audiostream wurde noch nicht gestartet. Bitte start() aufrufen, bevor read_chunk() verwendet wird.")
+            raise RuntimeError(
+                "Der Audiostream wurde noch nicht gestartet. Bitte start() aufrufen, bevor read_chunk() verwendet wird."
+            )
         audio_chunk, _ = self.stream.read(self.block_size)
         audio_chunk = np.squeeze(audio_chunk)
 

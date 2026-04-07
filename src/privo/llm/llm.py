@@ -1,5 +1,6 @@
 from llama_cpp import Llama
 
+
 class LocalLLM:
     def __init__(
         self,
@@ -43,11 +44,11 @@ class LocalLLM:
         max_messages = self.history_limit * 2
         self.history = self.history[-max_messages:]
 
-        #TODO: Stream response for faster speaking time?
+        # TODO: LLM Stream?
         return answer
-    
+
     def reset_history(self) -> None:
         self.history = []
-    
+
     # --- DEL ---
     # n_ctx, n_gpu_layers, verbose, max_tokens, temperature als Parameter in generate

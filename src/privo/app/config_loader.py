@@ -71,7 +71,7 @@ class ConfigLoader:
         "tts_noise_w_scale": float,
         "tts_sentence_silence": float,
         "debug_dir": str,
-        "benchmark_samples_dir": str
+        "benchmark_samples_dir": str,
     }
 
     def __init__(self, config_path: str = "config.yaml"):
@@ -83,14 +83,20 @@ class ConfigLoader:
                 raw = yaml.safe_load(f) or {}
                 print(f"[green]Config-Datei '{self.config_path}' geladen.[/green]\n")
         except FileNotFoundError:
-            print("[bold red]Config-Datei konnte nicht gefunden werden.[/bold red]\n[yellow]Standardwerte werden verwendet.[/yellow]\n")
+            print(
+                "[bold red]Config-Datei konnte nicht gefunden werden.[/bold red]\n[yellow]Standardwerte werden verwendet.[/yellow]\n"
+            )
             return {}
         except yaml.YAMLError as e:
-            print(f"[bold red]Fehler beim Parsen der YAML: {e}.[/bold red]\n[yellow]Standardwerte werden verwendet.[/yellow]\n")
+            print(
+                f"[bold red]Fehler beim Parsen der YAML: {e}.[/bold red]\n[yellow]Standardwerte werden verwendet.[/yellow]\n"
+            )
             return {}
 
         if not isinstance(raw, dict):
-            print("[bold red]Config-Datei hat kein gültiges Mapping-Format.[/bold red]\n[yellow]Standardwerte werden verwendet.[/yellow]\n")
+            print(
+                "[bold red]Config-Datei hat kein gültiges Mapping-Format.[/bold red]\n[yellow]Standardwerte werden verwendet.[/yellow]\n"
+            )
             return {}
 
         config, errors = self._validate(raw)
@@ -110,7 +116,9 @@ class ConfigLoader:
             expected_type = self.EXPECTED_TYPES.get(key)
 
             if expected_type is None:
-                errors.append(f"[red]'{key}'[/red] ist kein bekannter Konfigurationswert.")
+                errors.append(
+                    f"[red]'{key}'[/red] ist kein bekannter Konfigurationswert."
+                )
                 continue
 
             if self._is_valid_type(value, expected_type):

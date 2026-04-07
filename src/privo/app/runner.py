@@ -4,6 +4,7 @@ from enum import Enum, auto
 from rich.console import Console
 from privo.app.module_builder import ModuleBuilder
 
+
 class State(Enum):
     LISTENING = auto()
     RECORDING = auto()
@@ -12,8 +13,9 @@ class State(Enum):
     SPEAKING = auto()
     FOLLOWUP = auto()
 
+
 def run(debug: bool = False) -> None:
-    console = Console() 
+    console = Console()
     console.print("\n\nStarte Privo...\n")
 
     builder = ModuleBuilder(debug=debug)
@@ -27,7 +29,9 @@ def run(debug: bool = False) -> None:
     last_interaction_time = 0.0
     silence_threshold = config.get("stt_silence_threshold", 500.0)
     conversation_timeout = config.get("llm_conversation_timeout", 8.0)
-    system_prompt = config.get("llm_system_prompt", "Du bist ein hilfreicher Sprachassistent")
+    system_prompt = config.get(
+        "llm_system_prompt", "Du bist ein hilfreicher Sprachassistent"
+    )
     answer = ""
 
     audio.start()
@@ -40,9 +44,12 @@ def run(debug: bool = False) -> None:
                     detected, wakeword, score = detector.process(chunk)
 
                     if detected:
+                        debugger.save_text(
+                            f"Wakeword erkannt: {wakeword} (Score: {score})\n",
+                            "Wakeword",
+                        )
                         if not conversation_active:
-                            llm.reset_history() 
-                        conversation_active = True
+                            llm.reset_history()
                         last_interaction_time = time.time()
 
                         pre_roll_chunks = audio.get_buffered_audio()
@@ -71,13 +78,17 @@ def run(debug: bool = False) -> None:
                         cleaned = transcript.strip()
                         lower = cleaned.lower()
 
-                        for wakeword in wwd_to_strip:
-                            if lower.startswith(wakeword):
-                                cleaned = cleaned[len(wakeword):].lstrip(" ,.!?:;")
+                        for wakeword_to_strip in wwd_to_strip:
+                            if lower.startswith(wakeword_to_strip):
+                                cleaned = cleaned[len(wakeword_to_strip) :].lstrip(
+                                    " ,.!?:;"
+                                )
                                 break
 
                         if not cleaned:
-                            console.print("\n[bold red]Nur Wakeword erkannt, keine eigentliche Eingabe.[/bold red]")
+                            console.print(
+                                "\n[bold red]Nur Wakeword erkannt, keine eigentliche Eingabe.[/bold red]"
+                            )
                             utterance_audio = None
                             last_interaction_time = time.time()
                             state = State.FOLLOWUP
@@ -85,7 +96,9 @@ def run(debug: bool = False) -> None:
                         transcript = cleaned
                         debugger.save_text(transcript + "\n", "Bereinigtes Transkript")
                     else:
-                        console.print("\n[bold red]Es konnte kein Audio transkribiert werden.[/bold red]")
+                        console.print(
+                            "\n[bold red]Es konnte kein Audio transkribiert werden.[/bold red]"
+                        )
                         state = State.LISTENING
                         continue
                     utterance_audio = None
@@ -96,8 +109,12 @@ def run(debug: bool = False) -> None:
                     status.update("Generiere Antwort...")
 
                     if not transcript:
-                        console.print("\n[bold red]Es wurde nur Stille aufgenommen – keine Antwort generiert.[/bold red]")
-                        state = State.FOLLOWUP if conversation_active else State.LISTENING
+                        console.print(
+                            "\n[bold red]Es wurde nur Stille aufgenommen – keine Antwort generiert.[/bold red]"
+                        )
+                        state = (
+                            State.FOLLOWUP if conversation_active else State.LISTENING
+                        )
                         continue
 
                     answer = llm.generate(
@@ -138,7 +155,7 @@ def run(debug: bool = False) -> None:
                         continue
 
                     if not recorder.recording:
-                        # TODO:Silero-VAD überall benutzen!!! 
+                        # TODO:Silero-VAD überall benutzen!!!
                         rms = np.sqrt(np.mean(np.square(chunk.astype(np.float32))))
 
                         if rms > silence_threshold:
@@ -165,5 +182,5 @@ def run(debug: bool = False) -> None:
 # --- DEL ---
 # Statemachine
 # Rich-text verarbeitung
-# TODO:Silero-VAD überall benutzen!!! 
+# TODO:Silero-VAD überall benutzen!!!
 # TODO: LLM stream einbauen!!!

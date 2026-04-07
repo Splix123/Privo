@@ -3,11 +3,16 @@ from openwakeword.model import Model
 
 
 class WakewordDetector:
-    def __init__(self, model_path: str = "models/wakeword/alexa_v0.1.onnx", threshold: float = 0.5, vad_threshold: float = 0.5):
+    def __init__(
+        self,
+        model_path: str = "models/wakeword/alexa_v0.1.onnx",
+        threshold: float = 0.5,
+        vad_threshold: float = 0.5,
+    ):
         model_file = Path(model_path)
 
         if not model_file.exists():
-            raise FileNotFoundError(f"Wakeword-Modell nicht gefunden: {model_file}" )
+            raise FileNotFoundError(f"Wakeword-Modell nicht gefunden: {model_file}")
 
         self.model = Model(
             wakeword_models=[str(model_file)],

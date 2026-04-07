@@ -3,6 +3,7 @@ import numpy as np
 from pathlib import Path
 from datetime import datetime
 
+
 class Debugger:
     def __init__(self, debug_dir: str, enabled: bool) -> None:
         self.enabled = enabled
@@ -10,7 +11,7 @@ class Debugger:
         self.utterance_counter = 1
         if not self.enabled:
             return
-        
+
         timestamp = datetime.now().strftime("%d.%m.%Y_%H:%M")
         self.debug_dir = Path(debug_dir) / timestamp
         self.debug_dir.mkdir(parents=True, exist_ok=True)

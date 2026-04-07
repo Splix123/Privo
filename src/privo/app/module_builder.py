@@ -8,16 +8,20 @@ from privo.stt import WhisperStt
 from privo.llm import LocalLLM
 from privo.tts import PiperTts
 
+
 class ModuleBuilder:
     def __init__(self, debug: bool = False):
         self.console = Console()
         self.config = ConfigLoader().load()
-        self.debugger = Debugger(debug_dir=self.config.get("debug_dir", "debug"), enabled=debug)
+        self.debugger = Debugger(
+            debug_dir=self.config.get("debug_dir", "debug"), enabled=debug
+        )
 
     def build_audio(self) -> AudioInput:
         audio = AudioInput(
             **{
-                k: v for k, v in {
+                k: v
+                for k, v in {
                     "sample_rate": self.config.get("au_sample_rate"),
                     "block_ms": self.config.get("au_block_size"),
                     "channels": self.config.get("au_channels"),
@@ -32,7 +36,8 @@ class ModuleBuilder:
     def build_wakeword_detector(self) -> WakewordDetector:
         detector = WakewordDetector(
             **{
-                k: v for k, v in {
+                k: v
+                for k, v in {
                     "model_path": self.config.get("wwd_model_path"),
                     "threshold": self.config.get("wwd_threshold"),
                     "vad_threshold": self.config.get("wwd_vad_threshold"),
@@ -46,7 +51,8 @@ class ModuleBuilder:
     def build_recorder(self) -> UtteranceRecorder:
         recorder = UtteranceRecorder(
             **{
-                k: v for k, v in {
+                k: v
+                for k, v in {
                     "silence_threshold": self.config.get("stt_silence_threshold"),
                     "silence_blocks": self.config.get("stt_silence_blocks"),
                 }.items()
@@ -55,11 +61,12 @@ class ModuleBuilder:
         )
         self.console.print("Utterance-Recorder-Modul geladen")
         return recorder
-    
+
     def build_stt(self) -> WhisperStt:
         stt = WhisperStt(
             **{
-                k: v for k, v in {
+                k: v
+                for k, v in {
                     "model_path": self.config.get("stt_model_path"),
                     "device": self.config.get("stt_device"),
                     "compute_type": self.config.get("stt_compute_type"),
@@ -71,10 +78,12 @@ class ModuleBuilder:
         )
         self.console.print("STT-Modul geladen")
         return stt
+
     def build_llm(self) -> LocalLLM:
         llm = LocalLLM(
             **{
-                k: v for k, v in {
+                k: v
+                for k, v in {
                     "model_path": self.config.get("llm_model_path"),
                     "n_ctx": self.config.get("llm_n_ctx"),
                     "n_gpu_layers": self.config.get("llm_n_gpu_layers"),
@@ -92,7 +101,8 @@ class ModuleBuilder:
     def build_tts(self) -> PiperTts:
         tts = PiperTts(
             **{
-                k: v for k, v in {
+                k: v
+                for k, v in {
                     "model_path": self.config.get("tts_model_path"),
                     "config_path": self.config.get("tts_config_path"),
                     "speaker": self.config.get("tts_speaker"),
@@ -106,7 +116,7 @@ class ModuleBuilder:
         )
         self.console.print("TTS-Modul geladen\n")
         return tts
-    
+
     def build_all(self):
         config = self.config
         debugger = self.debugger
@@ -118,7 +128,7 @@ class ModuleBuilder:
         tts = self.build_tts()
 
         return config, debugger, audio, detector, recorder, stt, llm, tts
-    
+
     def build_benchmark(self):
         config = self.config
         debugger = self.debugger

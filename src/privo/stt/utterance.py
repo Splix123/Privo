@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class UtteranceRecorder:
     def __init__(self, silence_threshold: float = 500.0, silence_blocks: int = 8):
         self.silence_threshold = silence_threshold
@@ -51,7 +52,7 @@ class UtteranceRecorder:
     def _audio_level(chunk: np.ndarray) -> float:
         chunk = chunk.astype(np.float32)
         return float(np.mean(np.abs(chunk)))
-    
+
 
 # --- DEL ---
 # Um Audio chunks zu einem kompletten satz zusammenzufügen
