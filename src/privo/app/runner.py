@@ -66,7 +66,7 @@ def run(debug: bool = False) -> None:
                 elif state == State.TRANSCRIBING:
                     status.update("Verarbeite Eingabe...")
                     if utterance_audio is not None and len(utterance_audio) > 0:
-                        transcript = stt.transcribe(utterance_audio)
+                        transcript = stt.transcribe_stream(utterance_audio)
                         debugger.save_text(transcript, "Transkript")
                         cleaned = transcript.strip()
                         lower = cleaned.lower()

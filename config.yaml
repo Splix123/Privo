@@ -47,4 +47,4 @@ tts_sentence_silence: 0.2
 debug_dir: "debug"
 
 # Benchmarking
-benchmark_samples_dir: "tests/samples"
+benchmark_samples_dir: "tests/audio_samples"

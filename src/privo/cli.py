@@ -1,5 +1,5 @@
 import argparse
-from .app import run
+from .app import run, benchmark
 
 def main() -> None:
     parser = argparse.ArgumentParser(prog="privo")
@@ -16,7 +16,7 @@ def main() -> None:
     elif args.command == "debug":
         run(debug=True)
     elif args.command == "benchmark":
-        print("Benchmark startet...")
+        benchmark()
     else:
         parser.print_help()
 

@@ -1,5 +1,5 @@
 import yaml
-from typing import Any, TypedDict, get_args
+from typing import Any, TypedDict, get_args, get_origin
 from rich import print
 
 
@@ -124,6 +124,9 @@ class ConfigLoader:
         return validated, errors
 
     def _is_valid_type(self, value: Any, expected_type: type) -> bool:
+        origin = get_origin(expected_type)
+        args = get_args(expected_type)
+
         if expected_type is float:
             return isinstance(value, (int, float)) and not isinstance(value, bool)
 
@@ -132,5 +135,15 @@ class ConfigLoader:
 
         if expected_type is str:
             return isinstance(value, str)
+
+        if origin is list:
+            if not isinstance(value, list):
+                return False
+
+            if not args:
+                return True
+
+            item_type = args[0]
+            return all(self._is_valid_type(item, item_type) for item in value)
 
         return isinstance(value, expected_type)

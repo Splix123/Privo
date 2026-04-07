@@ -1,3 +1,4 @@
+from pathlib import Path
 import numpy as np
 from faster_whisper import WhisperModel
 
@@ -19,7 +20,7 @@ class WhisperStt:
         self.language = language
         self.beam_size = beam_size
 
-    def transcribe(self, audio: np.ndarray) -> str:
+    def transcribe_stream(self, audio: np.ndarray) -> str:
         if audio is None or len(audio) == 0:
             return ""
         
@@ -28,6 +29,21 @@ class WhisperStt:
 
         segments, _ = self.model.transcribe(
             audio,
+            language=self.language,
+            beam_size=self.beam_size,
+        )
+
+        text = "".join(segment.text for segment in segments).strip()
+        return text
+    
+    def transcribe_sample(self, audio_path: str | Path) -> str:
+        audio_path = Path(audio_path)
+
+        if not audio_path.exists() or not audio_path.is_file():
+            return ""
+
+        segments, _ = self.model.transcribe(
+            str(audio_path),
             language=self.language,
             beam_size=self.beam_size,
         )
