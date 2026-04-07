@@ -52,6 +52,7 @@ def run(debug: bool = False) -> None:
                         )
                         if not conversation_active:
                             llm.reset_history()
+                        conversation_active = True
                         last_interaction_time = time.time()
 
                         pre_roll_chunks = audio.get_buffered_audio()
@@ -97,6 +98,7 @@ def run(debug: bool = False) -> None:
                                 "\n[bold red]Nur Wakeword erkannt, keine eigentliche Eingabe.[/bold red]"
                             )
                             utterance_audio = None
+                            conversation_active = True
                             last_interaction_time = time.time()
                             state = State.FOLLOWUP
                             continue
