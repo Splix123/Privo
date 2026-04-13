@@ -1,6 +1,10 @@
+from __future__ import annotations
+
+import shutil
 import yaml
+from importlib.resources import files, as_file
 from pathlib import Path
-from typing import Any, TypedDict, get_args, get_origin
+from typing import Any, TypedDict, get_args, get_origin, get_type_hints
 from rich import print
 
 
@@ -59,15 +63,30 @@ class Config(TypedDict, total=False):
 class ConfigLoader:
     """Lädt und validiert die Konfigurationswerte der Anwendung basierend auf ihrem Typ."""
 
-    EXPECTED_TYPES: dict[str, Any] = Config.__annotations__
+    EXPECTED_TYPES: dict[str, Any] = get_type_hints(Config)
 
-    def __init__(self, config_path: str | Path = "config.yaml") -> None:
+    def __init__(self, filename: str = "config.yaml") -> None:
         """Setzt den Pfad zur Konfigurationsdatei. Standardmäßig wird "config.yaml" im aktuellen Verzeichnis verwendet.
 
         Args:
-            config_path (str | Path, optional): Der Pfad zur Konfigurationsdatei. Defaults to "config.yaml".
+            filename (str, optional): Der Name der Konfigurationsdatei. Defaults to "config.yaml".
         """
-        self.config_path = Path(config_path)
+        self.filename = filename
+
+    def get_config_path(self) -> Path:
+        """Gibt den Pfad zur Konfigurationsdatei zurück. Wenn die Datei nicht existiert, wird sie aus den Ressourcen kopiert.
+
+        Returns:
+            Path: Der Pfad zur Konfigurationsdatei.
+        """
+        path = Path.cwd() / self.filename
+
+        if not path.exists():
+            resource = files("privo").joinpath("config.yaml")
+            with as_file(resource) as source_path:
+                shutil.copyfile(source_path, path)
+
+        return path
 
     def load(self) -> Config:
         """Lädt die Konfigurationsdatei.
@@ -75,16 +94,20 @@ class ConfigLoader:
         Returns:
             Config: Die geladene Konfiguration.
         """
+        config_path = self.get_config_path()
+
         try:
-            with self.config_path.open("r", encoding="utf-8") as f:
+            with config_path.open("r", encoding="utf-8") as f:
                 raw = yaml.safe_load(f) or {}
-                print(f"[green]Config-Datei '{self.config_path}' geladen.[/green]\n")
+                print(f"[green]Config-Datei '{config_path}' geladen.[/green]\n")
+
         except FileNotFoundError:
             print(
                 "[bold red]Config-Datei konnte nicht gefunden werden.[/bold red]\n"
                 "[yellow]Standardwerte werden verwendet.[/yellow]\n"
             )
             return {}
+
         except yaml.YAMLError as e:
             print(
                 f"[bold red]Fehler beim Parsen der YAML: {e}.[/bold red]\n"
@@ -110,7 +133,7 @@ class ConfigLoader:
         return config
 
     def _validate(self, raw: dict[str, Any]) -> tuple[Config, list[str]]:
-        """Validiert die geladenen Konfigurationswerte.
+        """Validiert die geladenen Konfigurationswerte nach dem erwarteten Typ.
 
         Args:
             raw (dict[str, Any]): Die rohen Konfigurationswerte.
@@ -143,14 +166,14 @@ class ConfigLoader:
         return validated, errors
 
     def _is_valid_type(self, value: Any, expected_type: type) -> bool:
-        """Überprüft, ob ein Wert den erwarteten Typ hat.
+        """Überprüft, ob ein Wert dem erwarteten Typ entspricht.
 
         Args:
             value (Any): Der zu überprüfende Wert.
             expected_type (type): Der erwartete Typ.
 
         Returns:
-            bool: True, wenn der Wert den erwarteten Typ hat, sonst False.
+            bool: True, wenn der Wert dem erwarteten Typ entspricht, False sonst.
         """
         origin = get_origin(expected_type)
         args = get_args(expected_type)

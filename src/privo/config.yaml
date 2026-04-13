@@ -15,12 +15,12 @@ wwd_to_strip: ["alexa", "alex", "hey alexa", "ok alexa"]
 #Speech Recognition
 stt_model_path: "models/stt/faster-whisper-small"
 stt_language: en
-stt_device: cpu
+stt_device: auto
 
 stt_compute_type: int8
 stt_beam_size: 5
 stt_silence_threshold: 400.0
-stt_silence_blocks: 12
+stt_silence_blocks: 14
 
 #LLM
 llm_model_path: "models/llm/qwen2.5-3b-instruct-q4_k_m.gguf"
@@ -37,7 +37,6 @@ llm_conversation_timeout: 8.0
 tts_model_path: "models/tts/en_US-hfc_female-medium.onnx"
 tts_config_path: "models/tts/en_US-hfc_female-medium.onnx.json"
 
-tts_speaker: 0
 tts_length_scale: 1.0
 tts_noise_scale: 0.667
 tts_noise_w_scale: 0.8

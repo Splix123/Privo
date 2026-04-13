@@ -16,3 +16,4 @@ models/
 debug/
 dist/
 *Notes.txt
+/config.yaml
