@@ -25,7 +25,7 @@ def run(debug: bool = False) -> None:
     chat = Chat(console=console)
     console.print("\n\nStarte Privo...\n")
 
-    builder = ModuleBuilder(debug=debug)
+    builder = ModuleBuilder(console, debug=debug)
     config, debugger, audio, detector, recorder, stt, llm, tts = builder.build_all()
 
     state = State.LISTENING

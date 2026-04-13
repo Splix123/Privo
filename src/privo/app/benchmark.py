@@ -10,7 +10,7 @@ def benchmark(debug: bool = True) -> None:
     chat = Chat(console=console)
     console.print("\n\nStarte Privo Benchmark...\n")
 
-    builder = ModuleBuilder(debug=debug)
+    builder = ModuleBuilder(console, debug=debug)
     config, debugger, stt, llm, tts = builder.build_benchmark()
 
     samples_dir = Path(config.get("benchmark_samples_dir", "tests/audio_samples"))

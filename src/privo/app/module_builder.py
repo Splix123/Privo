@@ -1,5 +1,7 @@
+import sys
+from pathlib import Path
 from rich.console import Console
-from privo.app.config_loader import ConfigLoader
+from privo.app import ConfigLoader
 from privo.app.debugger import Debugger
 from privo.audio import AudioInput
 from privo.wakeword import WakewordDetector
@@ -10,19 +12,43 @@ from privo.tts import PiperTts
 
 
 class ModuleBuilder:
-    """Baut die Module der Anwendung basierend auf den geladenen Konfigurationswerten. Dadurch wird die Initialisierung der Module zentralisiert und vereinfacht."""
+    """Baut die Module der Anwendung basierend auf den geladenen Konfigurationswerten. Die Initialisierung der Module wird zentralisiert und vereinfacht."""
 
-    def __init__(self, debug: bool = False):
+    def __init__(self, console: Console, debug: bool = False):
         """Initialisiert den ModuleBuilder mit den gegebenen Parametern.
 
         Args:
             debug (bool, optional): Aktiviert den Debug-Modus. Defaults to False.
         """
-        self.console = Console()
+        self.console = console
+        self.initialize_model_dirs()
+
         self.config = ConfigLoader().load()
         self.debugger = Debugger(
             debug_dir=self.config.get("debug_dir", "debug"), enabled=debug
         )
+
+    def initialize_model_dirs(self) -> None:
+        """Erstellt Modell-Ordner. falls sie neu erstellt werden müssen, wird das Programm beendet und der User daraufhin angewiesen, die benötigten Modelle darin abzulegen."""
+
+        base_dir = Path.cwd()
+        models_dir = base_dir / "models"
+
+        first_run = not models_dir.exists()
+
+        for name in ["models/wakeword", "models/stt", "models/llm", "models/tts"]:
+            (base_dir / name).mkdir(parents=True, exist_ok=True)
+
+        if first_run:
+            self.console.print(
+                "[bold green]Modelverzeichnisse wurden erstellt.[/bold green]"
+            )
+            self.console.print(
+                "[bold yellow]Um Privo zu verwenden, musst du für die einzelnen Module entsprechende Modelle bereitstellen (z.B. qwen 2.5 als LLM-Modell). Bitte lege jetzt die benötigten Modelle in die Ordner und starte Privo erneut.[/bold yellow]"
+            )
+            sys.exit(0)
+
+        self.console.print("[green]Modellverzeichnisse geladen[/green ]")
 
     def build_audio(self) -> AudioInput:
         """Baut das Audio-Modul.
