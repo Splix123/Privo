@@ -10,7 +10,14 @@ from privo.tts import PiperTts
 
 
 class ModuleBuilder:
+    """Baut die Module der Anwendung basierend auf den geladenen Konfigurationswerten. Dadurch wird die Initialisierung der Module zentralisiert und vereinfacht."""
+
     def __init__(self, debug: bool = False):
+        """Initialisiert den ModuleBuilder mit den gegebenen Parametern.
+
+        Args:
+            debug (bool, optional): Aktiviert den Debug-Modus. Defaults to False.
+        """
         self.console = Console()
         self.config = ConfigLoader().load()
         self.debugger = Debugger(
@@ -18,6 +25,11 @@ class ModuleBuilder:
         )
 
     def build_audio(self) -> AudioInput:
+        """Baut das Audio-Modul.
+
+        Returns:
+            AudioInput: Das konfigurierte Audio-Modul.
+        """
         audio = AudioInput(
             **{
                 k: v
@@ -34,6 +46,11 @@ class ModuleBuilder:
         return audio
 
     def build_wakeword_detector(self) -> WakewordDetector:
+        """Baut das Wakeword-Detector-Modul.
+
+        Returns:
+            WakewordDetector: Das konfigurierte Wakeword-Detector-Modul.
+        """
         detector = WakewordDetector(
             **{
                 k: v
@@ -49,6 +66,11 @@ class ModuleBuilder:
         return detector
 
     def build_recorder(self) -> UtteranceRecorder:
+        """Baut das Utterance-Recorder-Modul.
+
+        Returns:
+            UtteranceRecorder: Das konfigurierte Utterance-Recorder-Modul.
+        """
         recorder = UtteranceRecorder(
             **{
                 k: v
@@ -63,6 +85,11 @@ class ModuleBuilder:
         return recorder
 
     def build_stt(self) -> WhisperStt:
+        """Baut das STT-Modul.
+
+        Returns:
+            WhisperStt: Das konfigurierte STT-Modul.
+        """
         stt = WhisperStt(
             **{
                 k: v
@@ -80,6 +107,11 @@ class ModuleBuilder:
         return stt
 
     def build_llm(self) -> LocalLLM:
+        """Baut das LLM-Modul.
+
+        Returns:
+            LocalLLM: Das konfigurierte LLM-Modul.
+        """
         llm = LocalLLM(
             **{
                 k: v
@@ -91,6 +123,7 @@ class ModuleBuilder:
                     "max_tokens": self.config.get("llm_max_tokens"),
                     "temperature": self.config.get("llm_temperature"),
                     "history_limit": self.config.get("llm_history_limit"),
+                    "system_prompt": self.config.get("llm_system_prompt"),
                 }.items()
                 if v is not None
             }
@@ -99,6 +132,11 @@ class ModuleBuilder:
         return llm
 
     def build_tts(self) -> PiperTts:
+        """Baut das TTS-Modul.
+
+        Returns:
+            PiperTts: Das konfigurierte TTS-Modul.
+        """
         tts = PiperTts(
             **{
                 k: v
@@ -118,6 +156,11 @@ class ModuleBuilder:
         return tts
 
     def build_all(self):
+        """Baut alle Module, welche für den normalen Betrieb der Anwendung benötigt werden.
+
+        Returns:
+            tuple: Enthält die konfigurierten Module für den normalen Modus.
+        """
         config = self.config
         debugger = self.debugger
         audio = self.build_audio()
@@ -130,6 +173,11 @@ class ModuleBuilder:
         return config, debugger, audio, detector, recorder, stt, llm, tts
 
     def build_benchmark(self):
+        """Baut nur Module, welche für den Benchmark-Modus benötigt werden.
+
+        Returns:
+            tuple: Enthält die konfigurierten Module für den Benchmark-Modus.
+        """
         config = self.config
         debugger = self.debugger
         stt = self.build_stt()

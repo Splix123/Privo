@@ -50,8 +50,6 @@ Der Prototyp besteht aus mehreren Modulen:
 
 Alle Komponenten arbeiten vollständig lokal auf dem Gerät.
 
----
-
 ## 💻 Installation
 
 ### Voraussetzungen
@@ -66,8 +64,6 @@ Alle Komponenten arbeiten vollständig lokal auf dem Gerät.
 pip install git+https://github.com/USERNAME/privo.git
 ```
 
----
-
 ## 📊 Evaluation
 
 Im Rahmen der Bachelorarbeit wird der Prototyp hinsichtlich folgender Kriterien bewertet:
@@ -78,14 +74,10 @@ Im Rahmen der Bachelorarbeit wird der Prototyp hinsichtlich folgender Kriterien 
 - Ressourcenverbrauch
 - Nutzerakzeptanz
 
----
-
 ## ⚠️ Einschränkungen
 
 - Eingeschränkte Sprachmodelle im Vergleich zu Cloud-Systemen
 - Hardwareabhängige Performance
-
----
 
 ## 👨‍💻 Autor
 

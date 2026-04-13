@@ -16,6 +16,11 @@ class State(Enum):
 
 
 def run(debug: bool = False) -> None:
+    """Startet die Hauptschleife der Anwendung und beginnt, durch die Statemaschine zu iterieren.
+
+    Args:
+        debug (bool, optional): Aktiviert den Debug-Modus. Defaults to False.
+    """
     console = Console()
     chat = Chat(console=console)
     console.print("\n\nStarte Privo...\n")
@@ -31,9 +36,6 @@ def run(debug: bool = False) -> None:
     last_interaction_time = 0.0
     silence_threshold = config.get("stt_silence_threshold", 500.0)
     conversation_timeout = config.get("llm_conversation_timeout", 8.0)
-    system_prompt = config.get(
-        "llm_system_prompt", "Du bist ein hilfreicher Sprachassistent"
-    )
     answer = ""
 
     audio.start()
@@ -57,14 +59,14 @@ def run(debug: bool = False) -> None:
 
                         pre_roll_chunks = audio.get_buffered_audio()
                         debugger.save_ring_buffer(pre_roll_chunks, "Wakeword")
-                        recorder.start(pre_roll_chunks=pre_roll_chunks)
+                        recorder.save_pre_roll(pre_roll_chunks=pre_roll_chunks)
 
                         detector.reset()
                         state = State.RECORDING
 
                 elif state == State.RECORDING:
                     status.update("Nehme Sprache auf...")
-                    finished = recorder.process(chunk)
+                    finished = recorder.process_chunk(chunk)
 
                     if finished:
                         utterance_audio = recorder.get_audio()
@@ -126,10 +128,7 @@ def run(debug: bool = False) -> None:
                         )
                         continue
 
-                    answer = llm.generate(
-                        user_text=transcript,
-                        system_prompt=system_prompt,
-                    )
+                    answer = llm.generate(user_text=transcript)
                     debugger.save_text(answer + "\n", "LLM-Antwort")
                     last_interaction_time = time.time()
                     state = State.SPEAKING
@@ -174,10 +173,10 @@ def run(debug: bool = False) -> None:
 
                         if rms > silence_threshold:
                             pre_roll_chunks = audio.get_buffered_audio()
-                            recorder.start(pre_roll_chunks=pre_roll_chunks)
+                            recorder.save_pre_roll(pre_roll_chunks=pre_roll_chunks)
 
                     else:
-                        finished = recorder.process(chunk)
+                        finished = recorder.process_chunk(chunk)
 
                         if finished:
                             utterance_audio = recorder.get_audio()

@@ -1,17 +1,30 @@
 import yaml
+from pathlib import Path
 from typing import Any, TypedDict, get_args, get_origin
 from rich import print
 
 
 class Config(TypedDict, total=False):
+    """Repräsentiert die Konfigurationswerte der Anwendung.
+
+    Args:
+        TypedDict (_type_): Basisklasse für typisierte Dictionaries.
+        total (bool, optional): Gibt an, ob alle Schlüssel erforderlich sind. Defaults to False.
+    """
+
+    # Audio
     au_sample_rate: int
     au_block_size: int
     au_channels: int
     au_ring_buffer_chunks: int
+
+    # Wakeword
     wwd_model_path: str
     wwd_threshold: float
     wwd_vad_threshold: float
     wwd_to_strip: list[str]
+
+    # STT
     stt_silence_threshold: float
     stt_silence_blocks: int
     stt_model_path: str
@@ -19,6 +32,8 @@ class Config(TypedDict, total=False):
     stt_compute_type: str
     stt_language: str
     stt_beam_size: int
+
+    # LLM
     llm_model_path: str
     llm_n_ctx: int
     llm_n_gpu_layers: int
@@ -27,75 +42,60 @@ class Config(TypedDict, total=False):
     llm_temperature: float
     llm_history_limit: int
     llm_conversation_timeout: float
+
+    # TTS
     tts_model_path: str
     tts_config_path: str
-    tts_speaker: int
     tts_length_scale: float
     tts_noise_scale: float
     tts_noise_w_scale: float
     tts_sentence_silence: float
+
+    # Sonstiges
     debug_dir: str
     benchmark_samples_dir: str
 
 
 class ConfigLoader:
-    EXPECTED_TYPES: dict[str, type] = {
-        "au_sample_rate": int,
-        "au_block_size": int,
-        "au_channels": int,
-        "au_ring_buffer_chunks": int,
-        "wwd_model_path": str,
-        "wwd_threshold": float,
-        "wwd_vad_threshold": float,
-        "wwd_to_strip": list[str],
-        "stt_silence_threshold": float,
-        "stt_silence_blocks": int,
-        "stt_model_path": str,
-        "stt_device": str,
-        "stt_compute_type": str,
-        "stt_language": str,
-        "stt_beam_size": int,
-        "llm_model_path": str,
-        "llm_n_ctx": int,
-        "llm_n_gpu_layers": int,
-        "llm_system_prompt": str,
-        "llm_max_tokens": int,
-        "llm_temperature": float,
-        "llm_history_limit": int,
-        "llm_conversation_timeout": float,
-        "tts_model_path": str,
-        "tts_config_path": str,
-        "tts_speaker": int,
-        "tts_length_scale": float,
-        "tts_noise_scale": float,
-        "tts_noise_w_scale": float,
-        "tts_sentence_silence": float,
-        "debug_dir": str,
-        "benchmark_samples_dir": str,
-    }
+    """Lädt und validiert die Konfigurationswerte der Anwendung basierend auf ihrem Typ."""
 
-    def __init__(self, config_path: str = "config.yaml"):
-        self.config_path = config_path
+    EXPECTED_TYPES: dict[str, Any] = Config.__annotations__
+
+    def __init__(self, config_path: str | Path = "config.yaml") -> None:
+        """Setzt den Pfad zur Konfigurationsdatei. Standardmäßig wird "config.yaml" im aktuellen Verzeichnis verwendet.
+
+        Args:
+            config_path (str | Path, optional): Der Pfad zur Konfigurationsdatei. Defaults to "config.yaml".
+        """
+        self.config_path = Path(config_path)
 
     def load(self) -> Config:
+        """Lädt die Konfigurationsdatei.
+
+        Returns:
+            Config: Die geladene Konfiguration.
+        """
         try:
-            with open(self.config_path, "r", encoding="utf-8") as f:
+            with self.config_path.open("r", encoding="utf-8") as f:
                 raw = yaml.safe_load(f) or {}
                 print(f"[green]Config-Datei '{self.config_path}' geladen.[/green]\n")
         except FileNotFoundError:
             print(
-                "[bold red]Config-Datei konnte nicht gefunden werden.[/bold red]\n[yellow]Standardwerte werden verwendet.[/yellow]\n"
+                "[bold red]Config-Datei konnte nicht gefunden werden.[/bold red]\n"
+                "[yellow]Standardwerte werden verwendet.[/yellow]\n"
             )
             return {}
         except yaml.YAMLError as e:
             print(
-                f"[bold red]Fehler beim Parsen der YAML: {e}.[/bold red]\n[yellow]Standardwerte werden verwendet.[/yellow]\n"
+                f"[bold red]Fehler beim Parsen der YAML: {e}.[/bold red]\n"
+                "[yellow]Standardwerte werden verwendet.[/yellow]\n"
             )
             return {}
 
         if not isinstance(raw, dict):
             print(
-                "[bold red]Config-Datei hat kein gültiges Mapping-Format.[/bold red]\n[yellow]Standardwerte werden verwendet.[/yellow]\n"
+                "[bold red]Config-Datei hat kein gültiges Mapping-Format.[/bold red]\n"
+                "[yellow]Standardwerte werden verwendet.[/yellow]\n"
             )
             return {}
 
@@ -106,9 +106,18 @@ class ConfigLoader:
             for error in errors:
                 print(f" - {error}")
             print("[yellow]Für diese Werte werden Standardwerte verwendet.[/yellow]\n")
+
         return config
 
     def _validate(self, raw: dict[str, Any]) -> tuple[Config, list[str]]:
+        """Validiert die geladenen Konfigurationswerte.
+
+        Args:
+            raw (dict[str, Any]): Die rohen Konfigurationswerte.
+
+        Returns:
+            tuple[Config, list[str]]: Ein Tupel aus der validierten Konfiguration und einer Liste von Fehlern.
+        """
         validated: Config = {}
         errors: list[str] = []
 
@@ -121,17 +130,28 @@ class ConfigLoader:
                 )
                 continue
 
-            if self._is_valid_type(value, expected_type):
-                validated[key] = value
-            else:
+            if not self._is_valid_type(value, expected_type):
+                type_name = getattr(expected_type, "__name__", str(expected_type))
                 errors.append(
-                    f"[red]'{key}'[/red] hat ungültigen Typ: erwartet {expected_type.__name__}, "
+                    f"[red]'{key}'[/red] hat ungültigen Typ: erwartet {type_name}, "
                     f"bekommen {type(value).__name__} ([red]{value!r}[/red])"
                 )
+                continue
+
+            validated[key] = value
 
         return validated, errors
 
     def _is_valid_type(self, value: Any, expected_type: type) -> bool:
+        """Überprüft, ob ein Wert den erwarteten Typ hat.
+
+        Args:
+            value (Any): Der zu überprüfende Wert.
+            expected_type (type): Der erwartete Typ.
+
+        Returns:
+            bool: True, wenn der Wert den erwarteten Typ hat, sonst False.
+        """
         origin = get_origin(expected_type)
         args = get_args(expected_type)
 
