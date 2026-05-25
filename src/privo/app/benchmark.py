@@ -1,14 +1,35 @@
+import os
 import time
+import psutil
 from pathlib import Path
 from rich.console import Console
 from .chat import Chat
 from privo.app.module_builder import ModuleBuilder
 
 
+def get_resources(process: psutil.Process) -> dict:
+    return {
+        "cpu_percent": process.cpu_percent(interval=None),
+        "ram_mb": process.memory_info().rss / 1024 / 1024,
+    }
+
+
+def format_resources(before: dict, after: dict) -> str:
+    ram_diff = after["ram_mb"] - before["ram_mb"]
+    return (
+        f" | CPU: {after['cpu_percent']:.1f}%"
+        f" | RAM: {after['ram_mb']:.2f} MB"
+        f" | RAM Δ: {ram_diff:+.2f} MB"
+    )
+
+
 def benchmark(debug: bool = True) -> None:
     console = Console()
     chat = Chat(console=console)
     console.print("\n\nStarte Privo Benchmark...\n")
+
+    process = psutil.Process(os.getpid())
+    process.cpu_percent(interval=None)
 
     builder = ModuleBuilder(console, debug=debug)
     config, debugger, stt, llm, tts = builder.build_benchmark()
@@ -48,10 +69,15 @@ def benchmark(debug: bool = True) -> None:
                 )
                 debugger.save_text(f"Verarbeite Sample: {sample.name}", "Sample")
 
+                sample_resources_start = get_resources(process)
+                sample_start = time.perf_counter()
+
                 status.update(f"Transkribiere {sample.name}...")
+                stt_resources_start = get_resources(process)
                 stt_start = time.perf_counter()
                 transcript = stt.transcribe_sample(sample)
                 stt_time = time.perf_counter() - stt_start
+                stt_resources_end = get_resources(process)
 
                 if not transcript or not transcript.strip():
                     status.update(
@@ -71,7 +97,10 @@ def benchmark(debug: bool = True) -> None:
 
                 debugger.save_text(
                     transcript,
-                    "Transkript | in " + stt_time.__format__(".2f") + " Sekunden",
+                    "Transkript | in "
+                    + stt_time.__format__(".2f")
+                    + " Sekunden"
+                    + format_resources(stt_resources_start, stt_resources_end),
                 )
 
                 cleaned = transcript.strip()
@@ -98,9 +127,11 @@ def benchmark(debug: bool = True) -> None:
 
                 status.update(f"Generiere Antwort für {sample.name}...")
 
+                llm_resources_start = get_resources(process)
                 llm_start = time.perf_counter()
                 answer = llm.generate(transcript)
                 llm_time = time.perf_counter() - llm_start
+                llm_resources_end = get_resources(process)
 
                 if not answer or not answer.strip():
                     status.update(
@@ -118,20 +149,42 @@ def benchmark(debug: bool = True) -> None:
                     align="right",
                 )
                 debugger.save_text(
-                    answer, "Antwort | in " + llm_time.__format__(".2f") + " Sekunden"
+                    answer,
+                    "Antwort | in "
+                    + llm_time.__format__(".2f")
+                    + " Sekunden"
+                    + format_resources(llm_resources_start, llm_resources_end),
                 )
                 status.update("Sprechen...")
                 try:
+                    tts_resources_start = get_resources(process)
                     tts_start = time.perf_counter()
                     tts.stream_speak(answer)
                     tts_time = time.perf_counter() - tts_start
+                    tts_resources_end = get_resources(process)
+
                     debugger.save_text(
                         f"\n",
-                        "Sprechen | in " + tts_time.__format__(".2f") + " Sekunden",
+                        "Sprechen | in "
+                        + tts_time.__format__(".2f")
+                        + " Sekunden"
+                        + format_resources(tts_resources_start, tts_resources_end),
                     )
                 except Exception as e:
                     console.print(f"\n[bold red]TTS-Fehler:[/bold red] {e}")
                     debugger.save_text(f"TTS-Fehler: {e}\n", "TTS Fehler")
+
+                sample_time = time.perf_counter() - sample_start
+                sample_resources_end = get_resources(process)
+                debugger.save_text(
+                    (
+                        f"Gesamtdauer: {sample_time:.2f} Sekunden\n"
+                        f"CPU: {sample_resources_end['cpu_percent']:.1f}%\n"
+                        f"RAM: {sample_resources_end['ram_mb']:.2f} MB\n"
+                        f"RAM Δ: {sample_resources_end['ram_mb'] - sample_resources_start['ram_mb']:+.2f} MB\n"
+                    ),
+                    "Gesamtmessung Sample",
+                )
 
         except KeyboardInterrupt:
             console.print("\n[bold yellow]Benchmark abgebrochen.[/bold yellow]")
