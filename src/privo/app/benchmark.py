@@ -121,7 +121,7 @@ def benchmark(debug: bool = True) -> None:
             f"[bold green]Gefundene Sample-Dateien:[/bold green] {[f.name for f in sample_files]}"
         )
         debugger.save_text(
-            f"Sample-Dateien: {[f.name for f in sample_files]}\n", "Samples suchen"
+            f"Sample-Dateien: {[f.name for f in sample_files]}\n\n\n", "Samples suchen"
         )
     if not sample_files:
         console.print(
@@ -138,7 +138,7 @@ def benchmark(debug: bool = True) -> None:
                 console.print(
                     f"\n\n[bold]Sample:[/bold] {sample.name}", justify="center"
                 )
-                debugger.save_text(f"Verarbeite Sample: {sample.name}", "Sample")
+                debugger.save_text(f"Verarbeite Sample: {sample.name}\n", "Sample")
 
                 sample_resources_start = get_resources(process)
                 sample_start = time.perf_counter()
@@ -182,7 +182,7 @@ def benchmark(debug: bool = True) -> None:
 
                             debugger.save_text(
                                 f"Wakeword erkannt: {wakeword_name} "
-                                f"(Score: {wakeword_score})\n",
+                                f"(Score: {wakeword_score})",
                                 "Wakeword Benchmark",
                             )
 
@@ -224,8 +224,6 @@ def benchmark(debug: bool = True) -> None:
                     )
                     time.sleep(1)
                     continue
-
-                debugger.save_utterance(utterance_audio, "Benchmark Eingabe")
 
                 status.update(f"Transkribiere {sample.name}...")
                 stt_resources_start = get_resources(process)
@@ -283,7 +281,7 @@ def benchmark(debug: bool = True) -> None:
                     continue
 
                 transcript = cleaned
-                debugger.save_text(transcript, "Bereinigtes Transkript")
+                debugger.save_text(transcript + "\n", "Bereinigtes Transkript")
 
                 status.update(f"Generiere Antwort für {sample.name}...")
 
@@ -309,7 +307,7 @@ def benchmark(debug: bool = True) -> None:
                     align="right",
                 )
                 debugger.save_text(
-                    answer,
+                    answer + "\n",
                     "Antwort | in "
                     + llm_time.__format__(".2f")
                     + " Sekunden"
@@ -341,7 +339,7 @@ def benchmark(debug: bool = True) -> None:
                         f"Gesamtdauer: {sample_time:.2f} Sekunden\n"
                         f"CPU: {sample_resources_end['cpu_percent']:.1f}%\n"
                         f"RAM: {sample_resources_end['ram_mb']:.2f} MB\n"
-                        f"RAM Δ: {sample_resources_end['ram_mb'] - sample_resources_start['ram_mb']:+.2f} MB\n"
+                        f"RAM Δ: {sample_resources_end['ram_mb'] - sample_resources_start['ram_mb']:+.2f} MB\n\n\n"
                     ),
                     "Gesamtmessung Sample",
                 )

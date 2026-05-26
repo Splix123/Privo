@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="Logo.png" alt="Privo Logo" width="200">
+</p>
+
 # 🧠 Offline-Sprachassistent – Prototyp
 
 ## 📌 Übersicht
