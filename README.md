@@ -113,6 +113,12 @@ Das Benchmark-Modul unterstützt diese Evaluation, indem es definierte Testablä
 - GPU-Beschleunigung ist optional, kann die Verarbeitungsgeschwindigkeit jedoch deutlich verbessern
 - Den Sprachassistenten auf Englisch zu betreiben verbessert die LLM-Antwort und SST-Ausgabe wesentlich
 
+## Lizenz
+
+Der Quellcode von Privo steht unter der Apache License 2.0.
+
+Externe Modelle und Bibliotheken unterliegen jeweils ihren eigenen Lizenzen. Die mitgelieferten oder herunterladbaren Modelle sind nicht automatisch von der Apache-2.0-Lizenz dieses Projekts abgedeckt. Bitte beachte die jeweiligen Lizenzbedingungen der Modellanbieter.
+
 ## 👨‍💻 Autor
 
 Prototyp zur Bachelorarbeit von:
