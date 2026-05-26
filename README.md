@@ -25,28 +25,34 @@ Alle Verarbeitungsschritte – von der Audioaufnahme bis zur Antwortausgabe – 
 
 Der Prototyp unterstützt aktuell folgende Funktionen:
 
-- 🗣️ **Wakeword Erkennung (OpenWakeWord)**  
-  Zuhöeren ab einem bestimmten Wort
+- 🗣️ **Wakeword-Erkennung (OpenWakeWord)**  
+  Aktivierung des Sprachassistenten durch ein definiertes Wakeword
 
-- 🎙️ **Spracherkennung (Whisper)**  
+- 🎙️ **Spracherkennung (Faster-Whisper)**  
   Lokale Umwandlung von Sprache in Text
 
-- 🧠 **LLM-Verarbeitung (llama.cpp)**  
-  Antwortgenerierung basierend auf ausgewählten LLM-Modellen
+- 🧠 **LLM-Verarbeitung (llama.cpp + Qwen 2.5)**  
+  Antwortgenerierung basierend auf ausgewählten lokalen LLM-Modellen
 
 - 🔊 **Sprachausgabe (Piper)**  
-  Lokale Generierung von Antworten
+  Lokale Generierung gesprochener Antworten
+
+- 📊 **Benchmark-Modul**  
+  Durchführung von Messungen zur Bewertung von Latenz, Verarbeitungszeit und Ressourcenverbrauch einzelner Verarbeitungsschritte
+
+- 🐞 **Debugger**  
+  Speicherung und Ausgabe von Debug-Informationen, um Abläufe, Fehler und Zwischenergebnisse während der Entwicklung nachvollziehbar zu machen
 
 ## 🏗️ Architektur
 
 Der Prototyp besteht aus mehreren Modulen:
 
-1. **Audio-Input** – Aufnahme von Sprache über Mikrofon
-2. **Wakeword Modul** - Wakeword Erkennung
-3. **Utterance-Recorder** - Aufnehmen bis keine "Sprache" mehr erkannt wird
-4. **Speech-to-Text Modul** – Lokale Transkription
-5. **LLM Modul** – Antwortgenerierung
-6. **Text-to-Speech Modul** – Sprechen der Antwort
+1. **Audio-Input** – Aufnahme von Sprache über das Mikrofon
+2. **Wakeword-Modul** – Erkennung des definierten Aktivierungswortes
+3. **Utterance-Recorder** – Aufnahme der Nutzereingabe, bis keine Sprache mehr erkannt wird
+4. **Speech-to-Text-Modul** – Lokale Transkription der aufgenommenen Sprache
+5. **LLM-Modul** – Lokale Antwortgenerierung
+6. **Text-to-Speech-Modul** – Umwandlung der Antwort in Sprache
 
 Alle Komponenten arbeiten vollständig lokal auf dem Gerät.
 
@@ -56,7 +62,16 @@ Alle Komponenten arbeiten vollständig lokal auf dem Gerät.
 
 - Python 3.11
 - Mikrofon
-- Unterstütztes Betriebssystem (Windows, Linux, macOS)
+- Unterstütztes Betriebssystem:
+  - Windows
+  - Linux
+  - macOS
+- C/C++-Compiler bzw. Build-Tools:
+  - **macOS:** Xcode bzw. Xcode Command Line Tools
+  - **Windows:** Visual Studio Build Tools oder MinGW
+  - **Linux:** GCC oder Clang
+- Optional bei NVIDIA-Grafikkarten:
+  - CUDA-Treiber bzw. CUDA Toolkit für GPU-beschleunigte Whisper-Berechnung
 
 ### Setup
 
@@ -70,7 +85,15 @@ Danach den Setup-Assistenten starten:
 privo install
 ```
 
-Der Assistent fragt die Basiskonfiguration wie Sprache und Hardwaremodus ab und kann die Modelle für `STT`, `LLM` und `TTS` direkt herunterladen.
+Damit werden einmalig die benötigten lokalen Modelle heruntergeladen.
+
+Der Privo kann dann mit
+
+```bash
+privo run
+```
+
+gestartet werden.
 
 ## 📊 Evaluation
 
@@ -80,12 +103,15 @@ Im Rahmen der Bachelorarbeit wird der Prototyp hinsichtlich folgender Kriterien 
 - Erkennungsgenauigkeit
 - Reaktionszeit
 - Ressourcenverbrauch
-- Nutzerakzeptanz
+
+Das Benchmark-Modul unterstützt diese Evaluation, indem es definierte Testabläufe ausführt und Messwerte zur Performance des Systems erfasst.
 
 ## ⚠️ Einschränkungen
 
-- Eingeschränkte Sprachmodelle im Vergleich zu Cloud-Systemen
 - Hardwareabhängige Performance
+- Lokale Modelle benötigen je nach Größe ausreichend Speicherplatz und Arbeitsspeicher
+- GPU-Beschleunigung ist optional, kann die Verarbeitungsgeschwindigkeit jedoch deutlich verbessern
+- Den Sprachassistenten auf Englisch zu betreiben verbessert die LLM-Antwort und SST-Ausgabe wesentlich
 
 ## 👨‍💻 Autor
 
