@@ -1,6 +1,8 @@
 import os
 import time
 import psutil
+import numpy as np
+import soundfile as sf
 from pathlib import Path
 from rich.console import Console
 from .chat import Chat
@@ -8,6 +10,15 @@ from privo.app.module_builder import ModuleBuilder
 
 
 def get_resources(process: psutil.Process) -> dict:
+    """Liest die aktuellen CPU- und RAM-Werte des laufenden Prozesses aus.
+
+    Args:
+        process (psutil.Process): Der zu überwachende Prozess.
+
+    Returns:
+        dict: Ein Dictionary mit den aktuellen CPU- und RAM-Werten.
+    """
+
     return {
         "cpu_percent": process.cpu_percent(interval=None),
         "ram_mb": process.memory_info().rss / 1024 / 1024,
@@ -15,6 +26,16 @@ def get_resources(process: psutil.Process) -> dict:
 
 
 def format_resources(before: dict, after: dict) -> str:
+    """Formatiert zwei Ressourcen-Snapshots inklusive RAM-Differenz.
+
+    Args:
+        before (dict): Ressourcen-Snapshot vor der Ausführung.
+        after (dict): Ressourcen-Snapshot nach der Ausführung.
+
+    Returns:
+        str: Formatierter String mit CPU- und RAM-Werten sowie RAM-Differenz.
+    """
+
     ram_diff = after["ram_mb"] - before["ram_mb"]
     return (
         f" | CPU: {after['cpu_percent']:.1f}%"
@@ -23,7 +44,57 @@ def format_resources(before: dict, after: dict) -> str:
     )
 
 
+def load_sample_chunks(
+    sample_path: Path,
+    sample_rate: int,
+    block_ms: int,
+) -> list[np.ndarray]:
+    """Lädt ein WAV-Sample und zerlegt es in gepolsterte Int16-Blöcke.
+
+    Args:
+        sample_path (Path): Pfad zur WAV-Datei.
+        sample_rate (int): Erwartete Abtastrate der WAV-Datei.
+        block_ms (int): Größe der Blöcke in Millisekunden.
+
+    Raises:
+        ValueError: Wenn die Abtastrate der WAV-Datei nicht der erwarteten Abtastrate entspricht.
+
+    Returns:
+        list[np.ndarray]: Liste der gepolsterten Int16-Blöcke.
+    """
+
+    audio, file_sample_rate = sf.read(str(sample_path), dtype="int16", always_2d=False)
+
+    if file_sample_rate != sample_rate:
+        raise ValueError(
+            f"Sample {sample_path.name} hat {file_sample_rate} Hz, "
+            f"erwartet werden {sample_rate} Hz."
+        )
+
+    if audio.ndim > 1:
+        audio = audio[:, 0]
+
+    block_size = int(sample_rate * block_ms / 1000)
+
+    chunks = []
+    for start in range(0, len(audio), block_size):
+        chunk = audio[start : start + block_size]
+
+        if len(chunk) < block_size:
+            chunk = np.pad(chunk, (0, block_size - len(chunk)))
+
+        chunks.append(chunk.astype(np.int16))
+
+    return chunks
+
+
 def benchmark(debug: bool = True) -> None:
+    """Führt den kompletten Offline-Benchmark für alle WAV-Samples aus.
+
+    Args:
+        debug (bool, optional): Aktiviert den Debug-Modus. Defaults to True.
+    """
+
     console = Console()
     chat = Chat(console=console)
     console.print("\n\nStarte Privo Benchmark...\n")
@@ -32,7 +103,7 @@ def benchmark(debug: bool = True) -> None:
     process.cpu_percent(interval=None)
 
     builder = ModuleBuilder(console, debug=debug)
-    config, debugger, stt, llm, tts = builder.build_benchmark()
+    config, debugger, detector, recorder, stt, llm, tts = builder.build_benchmark()
 
     samples_dir = Path(config.get("benchmark_samples_dir", "tests/audio_samples"))
     if not samples_dir.exists() or not samples_dir.is_dir():
@@ -72,12 +143,101 @@ def benchmark(debug: bool = True) -> None:
                 sample_resources_start = get_resources(process)
                 sample_start = time.perf_counter()
 
+                status.update(f"Prüfe Wakeword in {sample.name}...")
+
+                detector.reset()
+                recorder.reset()
+
+                sample_rate = config.get("au_sample_rate", 16000)
+                block_ms = config.get("au_block_size", 80)
+                ring_buffer_chunks = config.get("au_ring_buffer_chunks", 20)
+
+                chunks = load_sample_chunks(
+                    sample_path=sample,
+                    sample_rate=sample_rate,
+                    block_ms=block_ms,
+                )
+
+                ring_buffer: list[np.ndarray] = []
+                wakeword_detected = False
+                wakeword_name = None
+                wakeword_score = None
+                utterance_audio = None
+
+                wwd_start = time.perf_counter()
+
+                for chunk in chunks:
+                    if not wakeword_detected:
+                        ring_buffer.append(chunk.copy())
+
+                        if len(ring_buffer) > ring_buffer_chunks:
+                            ring_buffer.pop(0)
+
+                        detected, wakeword, score = detector.process(chunk)
+
+                        if detected:
+                            wakeword_detected = True
+                            wakeword_name = wakeword
+                            wakeword_score = score
+
+                            debugger.save_text(
+                                f"Wakeword erkannt: {wakeword_name} "
+                                f"(Score: {wakeword_score})\n",
+                                "Wakeword Benchmark",
+                            )
+
+                            recorder.save_pre_roll(ring_buffer)
+                            detector.reset()
+
+                    else:
+                        finished = recorder.process_chunk(chunk)
+
+                        if finished:
+                            utterance_audio = recorder.get_audio()
+                            recorder.reset()
+                            break
+
+                wwd_time = time.perf_counter() - wwd_start
+
+                if not wakeword_detected:
+                    status.update(
+                        f"[bold yellow]Kein Wakeword in {sample.name} erkannt.[/bold yellow]"
+                    )
+                    debugger.save_text(
+                        f"Kein Wakeword erkannt in {sample.name}\n",
+                        "Wakeword Benchmark",
+                    )
+                    time.sleep(1)
+                    continue
+
+                if utterance_audio is None:
+                    utterance_audio = recorder.get_audio()
+                    recorder.reset()
+
+                if utterance_audio is None or len(utterance_audio) == 0:
+                    status.update(
+                        "[bold red]Wakeword erkannt, aber keine Äußerung aufgenommen.[/bold red]"
+                    )
+                    debugger.save_text(
+                        "Wakeword erkannt, aber keine Äußerung aufgenommen.\n",
+                        "Recording Benchmark",
+                    )
+                    time.sleep(1)
+                    continue
+
+                debugger.save_utterance(utterance_audio, "Benchmark Eingabe")
+
                 status.update(f"Transkribiere {sample.name}...")
                 stt_resources_start = get_resources(process)
                 stt_start = time.perf_counter()
-                transcript = stt.transcribe_sample(sample)
+                transcript = stt.transcribe_stream(utterance_audio)
                 stt_time = time.perf_counter() - stt_start
                 stt_resources_end = get_resources(process)
+
+                debugger.save_text(
+                    f"Wakeword-Zeit: {wwd_time:.2f} Sekunden\n",
+                    "Wakeword Benchmark",
+                )
 
                 if not transcript or not transcript.strip():
                     status.update(
@@ -129,7 +289,7 @@ def benchmark(debug: bool = True) -> None:
 
                 llm_resources_start = get_resources(process)
                 llm_start = time.perf_counter()
-                answer = llm.generate(transcript)
+                answer = llm.generate(user_text=transcript)
                 llm_time = time.perf_counter() - llm_start
                 llm_resources_end = get_resources(process)
 

@@ -206,8 +206,10 @@ class ModuleBuilder:
         """
         config = self.config
         debugger = self.debugger
+        detector = self.build_wakeword_detector()
+        recorder = self.build_recorder()
         stt = self.build_stt()
         llm = self.build_llm()
         tts = self.build_tts()
 
-        return config, debugger, stt, llm, tts
+        return config, debugger, detector, recorder, stt, llm, tts
