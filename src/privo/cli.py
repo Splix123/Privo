@@ -1,5 +1,5 @@
 import argparse
-from .app import run, benchmark
+from .app import benchmark, run, install
 
 
 def main() -> None:
@@ -21,6 +21,12 @@ def main() -> None:
         help="Führt einen Benchmark des Assistenten mit vordefinierten Audiodateien aus tests/samples durch",
     )
     benchmark_parser.set_defaults(func=lambda args: benchmark())
+
+    install_parser = subparsers.add_parser(
+        "install",
+        help="Startet den Setup-Assistenten für Konfiguration und Modelldownloads",
+    )
+    install_parser.set_defaults(func=lambda args: install())
 
     args = parser.parse_args()
     args.func(args)
