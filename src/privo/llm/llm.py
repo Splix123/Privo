@@ -103,6 +103,3 @@ class LocalLLM:
     def reset_history(self) -> None:
         """Setzt die History (also das Gedächtnis) der Konversation zurück."""
         self.history.clear()
-
-    # --- DEL ---
-    # n_ctx, n_gpu_layers, verbose, max_tokens, temperature als Parameter in generate

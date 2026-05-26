@@ -98,11 +98,3 @@ class AudioInput:
             self.stream.stop()
             self.stream.close()
             self.stream = None
-
-
-# --- DEL ---
-# channels 1 = mono
-# Ringbuffer
-# 16khz -> 1280 samples pro 80ms chunk
-# 80ms chunks
-# 20 Chunks -> 1.6s Pre-Roll

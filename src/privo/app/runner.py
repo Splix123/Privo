@@ -211,9 +211,3 @@ def run(debug: bool = False) -> None:
             console.print("Beende Privo...")
         finally:
             audio.stop()
-
-
-# --- DEL ---
-# Statemachine
-# Rich-text verarbeitung
-# TODO:Silero-VAD überall benutzen!!!

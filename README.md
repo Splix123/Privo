@@ -64,6 +64,14 @@ Alle Komponenten arbeiten vollständig lokal auf dem Gerät.
 pip install git+https://github.com/USERNAME/privo.git
 ```
 
+Danach den Setup-Assistenten starten:
+
+```bash
+privo install
+```
+
+Der Assistent fragt die Basiskonfiguration wie Sprache und Hardwaremodus ab und kann die Modelle für `STT`, `LLM` und `TTS` direkt herunterladen.
+
 ## 📊 Evaluation
 
 Im Rahmen der Bachelorarbeit wird der Prototyp hinsichtlich folgender Kriterien bewertet:

@@ -111,8 +111,7 @@ class PiperTts:
         return cmd
 
     def stream_speak(self, text: str, chunk_size: int = 4096) -> None:
-        # TODO: PiperVoice.synthesize benutzen? siehe https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/API_PYTHON.md
-        """Synthetisiert Text mit Piper und gibt das Audiosignal als stream aus..
+        """Synthetisiert Text mit Piper und gibt das Audiosignal als stream aus.
 
         Args:
             text (str): Der zu sprechende Text.

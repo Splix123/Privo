@@ -69,8 +69,3 @@ class WakewordDetector:
         """Setzt den internen Zustand und die Edge-Logik des Detektors zurück."""
         self.was_above_threshold = False
         self.model.reset()
-
-
-# --- DEL ---
-# model_path in config
-# Threshold mit Edge detection (also nur Triggern wenn vorher unter Threshold war)
